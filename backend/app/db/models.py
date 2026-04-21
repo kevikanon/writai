@@ -32,3 +32,16 @@ class PasswordResetToken(Base):
     used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True)
+    default_tone: Mapped[Optional[str]] = mapped_column(String(50), default="professional")
+    default_article_type: Mapped[Optional[str]] = mapped_column(String(50), default="magic")
+    auto_save: Mapped[bool] = mapped_column(Boolean, default=True)
+    realtime_data_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
