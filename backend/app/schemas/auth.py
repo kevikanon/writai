@@ -19,3 +19,12 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     user_id: uuid.UUID
     expires_in: int
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
