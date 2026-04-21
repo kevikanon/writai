@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1 import auth
 from app.core.config import settings
 
 app = FastAPI(
     title="WritAi API",
     description="AI Writing & SEO Suite API",
     version="1.0.0",
+    openapi_url="/api/v1/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
 )
 
 app.add_middleware(
@@ -16,6 +20,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 
 @app.get("/api/v1/health")
