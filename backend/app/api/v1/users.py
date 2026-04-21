@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -14,9 +14,28 @@ router = APIRouter()
 
 
 async def get_current_user(
-    token: str,
+    authorization: str = Header(None),
     db: AsyncSession = Depends(get_db)
 ) -> User:
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing"
+        )
+
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication scheme"
+            )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format"
+        )
+
     user_id = verify_access_token(token)
     if not user_id:
         raise HTTPException(
@@ -33,21 +52,36 @@ async def get_current_user(
             detail="User not found"
         )
 
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+
     return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_profile(
-    db: AsyncSession = Depends(get_db),
-    token: str = None
+    current_user: CurrentUser,
 ):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Auth middleware not yet implemented")
+    return current_user
 
 
 @router.patch("/me", response_model=UserResponse)
 async def update_profile(
     request: UserUpdate,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    token: str = None
 ):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Auth middleware not yet implemented")
+    if request.name is not None:
+        current_user.name = request.name
+    if request.avatar_url is not None:
+        current_user.avatar_url = request.avatar_url
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
