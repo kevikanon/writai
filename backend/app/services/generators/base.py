@@ -35,6 +35,9 @@ class GenerationRequest:
     alternatives: bool = False
     relevant_details: Optional[str] = None
     outline: Optional[dict] = None
+    subject_name: Optional[str] = None
+    profession: Optional[str] = None
+    chronological_timeline: bool = False
 
 
 @dataclass
