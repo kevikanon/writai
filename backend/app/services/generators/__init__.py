@@ -2,6 +2,7 @@ from app.services.generators.base import ContentGenerator, GenerationRequest, Ge
 from app.services.generators.magic_writer import MagicWriter
 from app.services.generators.bulk_writer import BulkWriter
 from app.services.generators.short_info_writer import ShortInfoWriter
+from app.services.generators.outline_to_article import OutlineToArticle
 
 __all__ = [
     "ContentGenerator",
@@ -10,4 +11,5 @@ __all__ = [
     "MagicWriter",
     "BulkWriter",
     "ShortInfoWriter",
+    "OutlineToArticle",
 ]

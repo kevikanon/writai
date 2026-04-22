@@ -34,6 +34,7 @@ class GenerationRequest:
     pros_cons: bool = False
     alternatives: bool = False
     relevant_details: Optional[str] = None
+    outline: Optional[dict] = None
 
 
 @dataclass
