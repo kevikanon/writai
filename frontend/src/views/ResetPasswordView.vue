@@ -1,9 +1,9 @@
 <template>
-  <v-container class="fill-height">
+  <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
-      <v-col cols="12" sm="8" md="6" lg="4">
-        <v-card class="pa-4">
-          <v-card-title class="text-h5 text-center">Reset Password</v-card-title>
+      <v-col cols="12" sm="10" md="8" lg="6" xl="4">
+        <v-card class="pa-8" elevation="4">
+          <v-card-title class="text-h4 text-center mb-4">Reset Password</v-card-title>
           <v-card-text>
             <v-alert v-if="authStore.error" type="error" class="mb-4">
               {{ authStore.error }}
@@ -17,18 +17,25 @@
                 label="New Password"
                 type="password"
                 prepend-inner-icon="mdi-lock"
+                variant="outlined"
+                density="comfortable"
                 required
+                class="mb-2"
               />
               <v-text-field
                 v-model="confirmPassword"
                 label="Confirm Password"
                 type="password"
                 prepend-inner-icon="mdi-lock"
+                variant="outlined"
+                density="comfortable"
                 required
+                class="mb-4"
               />
               <v-btn
                 type="submit"
                 color="primary"
+                size="large"
                 block
                 :loading="authStore.loading"
               >
