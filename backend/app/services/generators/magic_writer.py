@@ -9,6 +9,12 @@ class MagicWriter(ContentGenerator):
         start_time = time.time()
         result = GenerationResult()
 
+        validation_error = self.validate_input(request)
+        if validation_error:
+            result.errors.append(validation_error)
+            result.processing_time = time.time() - start_time
+            return result
+
         try:
             keyword = request.target_keywords[0] if request.target_keywords else "general topic"
             
