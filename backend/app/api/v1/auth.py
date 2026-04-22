@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import uuid
 import secrets
+import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,11 @@ from app.schemas.auth import (
 from app.core.security import verify_password, get_password_hash
 from app.core.config import settings
 from app.services.jwt import create_access_token
+
+
+def hash_token(token: str) -> str:
+    """Use SHA256 for token hashing (not bcrypt - tokens don't need slow hashing)."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 router = APIRouter()
 
@@ -81,7 +87,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Dep
 
         reset_token = PasswordResetToken(
             user_id=user.id,
-            token_hash=get_password_hash(token),
+            token_hash=hash_token(token),
             expires_at=expires_at
         )
         db.add(reset_token)
