@@ -4,7 +4,7 @@ import math
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.db.database import get_db
 from app.db.models import Article, ArticleVersion, User
@@ -58,8 +58,9 @@ async def list_articles(
     if search:
         base_query = base_query.where(Article.title.ilike(f"%{search}%"))
 
-    count_result = await db.execute(select(Article).where(Article.user_id == current_user.id))
-    total = len(count_result.scalars().all())
+    count_query = select(func.count()).select_from(base_query.subquery())
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
 
     query = base_query.order_by(Article.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
