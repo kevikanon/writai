@@ -1,8 +1,16 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
+
+
+class PublishingPlatform(str, Enum):
+    WORDPRESS = "wordpress"
+    BLOGGER = "blogger"
+    SHOPIFY = "shopify"
+    WEBHOOK = "webhook"
 
 
 class PublishingConfigResponse(BaseModel):
@@ -21,7 +29,7 @@ class PublishingConfigResponse(BaseModel):
 
 
 class PublishingConfigCreate(BaseModel):
-    platform: str
+    platform: PublishingPlatform
     name: str
     site_url: Optional[str] = None
     category_id: Optional[str] = None
