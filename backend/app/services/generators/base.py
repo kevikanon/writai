@@ -35,6 +35,9 @@ class GenerationRequest:
     alternatives: bool = False
     relevant_details: Optional[str] = None
     outline: Optional[dict] = None
+    subject_name: Optional[str] = None
+    profession: Optional[str] = None
+    chronological_timeline: bool = False
 
 
 @dataclass
@@ -67,6 +70,8 @@ class ContentGenerator(ABC):
     def validate_input(self, request: GenerationRequest) -> Optional[str]:
         if not request.user_id:
             return "user_id is required"
+        if request.generator_type == "manual":
+            return None
         if not request.target_keywords and not request.custom_prompt:
             return "Either target_keywords or custom_prompt is required"
         if request.word_count_min > request.word_count_max:
@@ -114,3 +119,36 @@ You create well-structured, SEO-optimized articles that are engaging and informa
         if not text:
             return 0
         return len(text.split())
+
+    def generate_meta_description(self, content: str) -> str:
+        import re
+
+        content = re.sub(r'\n+', ' ', content)
+        content = re.sub(r'\s+', ' ', content)
+
+        sentences = re.split(r'(?<=[.!?])\s+', content)
+
+        meta = ""
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+
+            if len(meta) + len(sentence) + 1 <= 160:
+                meta = sentence
+            else:
+                break
+
+        if not meta:
+            meta = content[:157].rsplit(' ', 1)[0] + "..."
+
+        if not meta.endswith(('.', '!', '?')):
+            meta = meta.rstrip(',;:') + "."
+
+        return meta.strip()
+
+    def parse_title(self, content: str) -> str:
+        title = content.strip()
+        title = title.strip('"').strip("'")
+        lines = title.split('\n')
+        return lines[0].strip()
