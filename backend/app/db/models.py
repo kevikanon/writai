@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -72,7 +73,7 @@ class PublishingConfig(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
     platform: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    credentials: Mapped[str] = mapped_column(String(2000), nullable=False)
+    credentials: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     site_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     category_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
