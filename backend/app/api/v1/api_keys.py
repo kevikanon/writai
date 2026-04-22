@@ -96,6 +96,7 @@ async def create_api_key(
         user_id=current_user.id,
         provider=request.provider.value,
         key_hash=hash_api_key(request.api_key),
+        encrypted_key=request.api_key,
     )
     db.add(api_key)
     
@@ -164,6 +165,7 @@ async def update_api_key(
 
     if request.api_key is not None:
         api_key.key_hash = hash_api_key(request.api_key)
+        api_key.encrypted_key = request.api_key
     if request.is_active is not None:
         api_key.is_active = request.is_active
 
