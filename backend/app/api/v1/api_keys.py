@@ -104,7 +104,7 @@ async def create_api_key(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"API key for {request.provider} already exists. Use PUT to update.",
+            detail=f"API key for {request.provider} already exists. Use PATCH to update.",
         )
 
     api_key = UserAPIKey(
