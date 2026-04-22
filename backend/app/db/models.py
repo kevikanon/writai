@@ -2,9 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -80,3 +79,40 @@ class PublishingConfig(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Article(Base):
+    __tablename__ = "articles"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    slug: Mapped[str] = mapped_column(String(500), nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    excerpt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    word_count: Mapped[int] = mapped_column(Integer, default=0)
+    reading_time: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="draft")
+    article_type: Mapped[str] = mapped_column(String(50), default="magic")
+    target_keyword: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    secondary_keywords: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    tone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    word_count_target: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    meta_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    meta_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    featured_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="editor")
+    published_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ArticleVersion(Base):
+    __tablename__ = "article_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("articles.id"), index=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    word_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
