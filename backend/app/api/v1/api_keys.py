@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from sqlalchemy.exc import IntegrityError
 
 from app.db.database import get_db
 from app.db.models import UserAPIKey
@@ -91,30 +92,23 @@ async def create_api_key(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(UserAPIKey).where(
-            and_(
-                UserAPIKey.user_id == current_user.id,
-                UserAPIKey.provider == request.provider,
-            )
-        )
-    )
-    existing = result.scalar_one_or_none()
-
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"API key for {request.provider} already exists. Use PATCH to update.",
-        )
-
     api_key = UserAPIKey(
         user_id=current_user.id,
-        provider=request.provider,
+        provider=request.provider.value,
         key_hash=hash_api_key(request.api_key),
     )
     db.add(api_key)
-    await db.commit()
-    await db.refresh(api_key)
+    
+    try:
+        await db.commit()
+        await db.refresh(api_key)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"API key for {request.provider.value} already exists. Use PATCH to update.",
+        )
+    
     return api_key
 
 
