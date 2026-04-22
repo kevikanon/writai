@@ -1,8 +1,25 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, HttpUrl
+
+
+class ArticleStatus(str, Enum):
+    DRAFT = "draft"
+    GENERATED = "generated"
+    PUBLISHED = "published"
+
+
+class ArticleType(str, Enum):
+    MAGIC = "magic"
+    BULK = "bulk"
+    SHORT_INFO = "short_info"
+    OUTLINE = "outline"
+    AMAZON_REVIEW = "amazon_review"
+    BIOGRAPHY = "biography"
+    MANUAL = "manual"
 
 
 class ArticleResponse(BaseModel):
@@ -14,8 +31,8 @@ class ArticleResponse(BaseModel):
     excerpt: Optional[str] = None
     word_count: int
     reading_time: int
-    status: str
-    article_type: str
+    status: ArticleStatus
+    article_type: ArticleType
     target_keyword: Optional[str] = None
     secondary_keywords: Optional[list] = None
     tone: Optional[str] = None
@@ -34,14 +51,14 @@ class ArticleResponse(BaseModel):
 class ArticleCreate(BaseModel):
     title: str
     content: Optional[str] = None
-    article_type: Optional[str] = "magic"
+    article_type: Optional[ArticleType] = ArticleType.MAGIC
     target_keyword: Optional[str] = None
     secondary_keywords: Optional[list] = None
     tone: Optional[str] = None
     word_count_target: Optional[int] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
-    featured_image_url: Optional[str] = None
+    featured_image_url: Optional[HttpUrl] = None
 
 
 class ArticleUpdate(BaseModel):
@@ -53,8 +70,8 @@ class ArticleUpdate(BaseModel):
     word_count_target: Optional[int] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
-    featured_image_url: Optional[str] = None
-    status: Optional[str] = None
+    featured_image_url: Optional[HttpUrl] = None
+    status: Optional[ArticleStatus] = None
 
 
 class ArticleVersionResponse(BaseModel):
