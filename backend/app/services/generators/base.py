@@ -70,6 +70,8 @@ class ContentGenerator(ABC):
     def validate_input(self, request: GenerationRequest) -> Optional[str]:
         if not request.user_id:
             return "user_id is required"
+        if request.generator_type == "manual":
+            return None
         if not request.target_keywords and not request.custom_prompt:
             return "Either target_keywords or custom_prompt is required"
         if request.word_count_min > request.word_count_max:
