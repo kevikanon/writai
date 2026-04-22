@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, users, api_keys, publishing
+from app.api.v1 import auth, users, api_keys, publishing, articles
 from app.core.config import settings
 
 app = FastAPI(
@@ -25,6 +25,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(api_keys.router, prefix="/api/v1/api-keys", tags=["api-keys"])
 app.include_router(publishing.router, prefix="/api/v1/publishing", tags=["publishing"])
+app.include_router(articles.router, prefix="/api/v1/articles", tags=["articles"])
 
 
 @app.get("/api/v1/health")
