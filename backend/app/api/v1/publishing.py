@@ -1,4 +1,5 @@
 import uuid
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -47,8 +48,6 @@ async def create_publishing_config(
         for config in existing_default:
             config.is_default = False
 
-    import json
-
     config = PublishingConfig(
         user_id=current_user.id,
         platform=request.platform,
@@ -57,7 +56,7 @@ async def create_publishing_config(
         category_id=request.category_id,
         is_default=request.is_default,
         is_active=True,
-        credentials=json.dumps(request.credentials),
+        credentials=request.credentials,
     )
     db.add(config)
     await db.commit()
@@ -137,9 +136,7 @@ async def update_publishing_config(
     if request.is_active is not None:
         config.is_active = request.is_active
     if request.credentials is not None:
-        import json
-
-        config.credentials = json.dumps(request.credentials)
+        config.credentials = request.credentials
 
     await db.commit()
     await db.refresh(config)

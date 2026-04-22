@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import uuid
 import secrets
+import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,11 @@ from app.schemas.auth import (
 from app.core.security import verify_password, get_password_hash
 from app.core.config import settings
 from app.services.jwt import create_access_token
+
+
+def hash_token(token: str) -> str:
+    """Use SHA256 for token hashing (not bcrypt - tokens don't need slow hashing)."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 router = APIRouter()
 
@@ -81,7 +87,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Dep
 
         reset_token = PasswordResetToken(
             user_id=user.id,
-            token_hash=get_password_hash(token),
+            token_hash=hash_token(token),
             expires_at=expires_at
         )
         db.add(reset_token)
@@ -92,27 +98,24 @@ async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Dep
 
 @router.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    token_hash = hash_token(request.token)
+    
     result = await db.execute(
         select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == token_hash,
             PasswordResetToken.is_used == False,
             PasswordResetToken.expires_at > datetime.utcnow()
         )
     )
-    tokens = result.scalars().all()
+    reset_token = result.scalar_one_or_none()
 
-    found_token = None
-    for t in tokens:
-        if verify_password(request.token, t.token_hash):
-            found_token = t
-            break
-
-    if not found_token:
+    if not reset_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token"
         )
 
-    user_result = await db.execute(select(User).where(User.id == found_token.user_id))
+    user_result = await db.execute(select(User).where(User.id == reset_token.user_id))
     user = user_result.scalar_one_or_none()
 
     if not user:
@@ -122,8 +125,8 @@ async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depen
         )
 
     user.password_hash = get_password_hash(request.new_password)
-    found_token.is_used = True
-    found_token.used_at = datetime.utcnow()
+    reset_token.is_used = True
+    reset_token.used_at = datetime.utcnow()
 
     await db.commit()
 
