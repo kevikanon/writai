@@ -14,11 +14,6 @@ class ShortInfoWriter(ContentGenerator):
             result.processing_time = time.time() - start_time
             return result
 
-        if not request.target_keywords and not request.custom_prompt:
-            result.errors.append("Either target_keywords or custom_prompt is required")
-            result.processing_time = time.time() - start_time
-            return result
-
         try:
             keyword = request.target_keywords[0] if request.target_keywords else "the topic"
 
@@ -37,7 +32,7 @@ class ShortInfoWriter(ContentGenerator):
                     temperature=0.8,
                     max_tokens=60,
                 )
-                result.title = self._parse_title(title_response.content)
+                result.title = self.parse_title(title_response.content)
 
             result.slug = self.generate_slug(result.title)
 
@@ -59,7 +54,7 @@ class ShortInfoWriter(ContentGenerator):
             result.word_count = self.count_words(result.content)
             result.reading_time = self.calculate_reading_time(result.word_count)
             result.meta_title = result.title[:60] if len(result.title) > 60 else result.title
-            result.meta_description = self._generate_meta_description(result.content)
+            result.meta_description = self.generate_meta_description(result.content)
             result.tokens_used = content_response.usage.get("total_tokens", 0)
             result.processing_time = time.time() - start_time
 
@@ -102,36 +97,3 @@ Return in Markdown format."""
             prompt += f"\n\nAdditional: {request.custom_prompt}"
 
         return prompt
-
-    def _parse_title(self, content: str) -> str:
-        title = content.strip()
-        title = title.strip('"').strip("'")
-        lines = title.split('\n')
-        return lines[0].strip()
-
-    def _generate_meta_description(self, content: str) -> str:
-        import re
-
-        content = re.sub(r'\n+', ' ', content)
-        content = re.sub(r'\s+', ' ', content)
-
-        sentences = re.split(r'(?<=[.!?])\s+', content)
-
-        meta = ""
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if not sentence:
-                continue
-
-            if len(meta) + len(sentence) + 1 <= 160:
-                meta = sentence
-            else:
-                break
-
-        if not meta:
-            meta = content[:157].rsplit(' ', 1)[0] + "..."
-
-        if not meta.endswith(('.', '!', '?')):
-            meta = meta.rstrip(',;:') + "."
-
-        return meta.strip()
