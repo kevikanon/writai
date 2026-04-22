@@ -26,6 +26,8 @@ def generate_slug(title: str) -> str:
     slug = re.sub(r'[^a-z0-9\s-]', '', slug)
     slug = re.sub(r'[\s-]+', '-', slug)
     slug = slug.strip('-')
+    if not slug:
+        slug = uuid.uuid4().hex[:8]
     return slug
 
 
@@ -36,7 +38,9 @@ def calculate_reading_time(word_count: int) -> int:
 def count_words(text: str) -> int:
     if not text:
         return 0
-    return len(text.split())
+    import re
+    words = re.findall(r'\b\w+\b', text)
+    return len(words)
 
 
 @router.get("", response_model=ArticleListResponse)
