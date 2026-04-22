@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl, field_validator
 
 
 class ArticleStatus(str, Enum):
@@ -44,6 +44,13 @@ class ArticleResponse(BaseModel):
     published_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+    @field_validator('word_count', 'reading_time')
+    @classmethod
+    def validate_positive(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError('must be non-negative')
+        return v
 
     model_config = ConfigDict(from_attributes=True)
 
