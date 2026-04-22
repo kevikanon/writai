@@ -1,5 +1,6 @@
 import uuid
 from typing import Annotated
+import math
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from app.schemas.article import (
     ArticleCreate,
     ArticleUpdate,
     ArticleVersionResponse,
+    ArticleListResponse,
 )
 from app.api.v1.users import CurrentUser
 
@@ -24,6 +26,8 @@ def generate_slug(title: str) -> str:
     slug = re.sub(r'[^a-z0-9\s-]', '', slug)
     slug = re.sub(r'[\s-]+', '-', slug)
     slug = slug.strip('-')
+    if not slug:
+        slug = uuid.uuid4().hex[:8]
     return slug
 
 
@@ -34,10 +38,12 @@ def calculate_reading_time(word_count: int) -> int:
 def count_words(text: str) -> int:
     if not text:
         return 0
-    return len(text.split())
+    import re
+    words = re.findall(r'\b\w+\b', text)
+    return len(words)
 
 
-@router.get("", response_model=list[ArticleResponse])
+@router.get("", response_model=ArticleListResponse)
 async def list_articles(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
@@ -47,20 +53,41 @@ async def list_articles(
     page: int = 1,
     per_page: int = 10,
 ):
-    query = select(Article).where(Article.user_id == current_user.id)
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 10
+    if per_page > 100:
+        per_page = 100
+
+    base_query = select(Article).where(Article.user_id == current_user.id)
 
     if status_filter:
-        query = query.where(Article.status == status_filter)
+        base_query = base_query.where(Article.status == status_filter)
     if article_type:
-        query = query.where(Article.article_type == article_type)
+        base_query = base_query.where(Article.article_type == article_type)
     if search:
-        query = query.where(Article.title.ilike(f"%{search}%"))
+        base_query = base_query.where(Article.title.ilike(f"%{search}%"))
 
-    query = query.order_by(Article.created_at.desc())
+    count_query = select(func.count()).select_from(base_query.subquery())
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
+
+    query = base_query.order_by(Article.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+
+    total_pages = math.ceil(total / per_page) if total > 0 else 0
+
+    return ArticleListResponse(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+    )
 
 
 @router.post("", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
@@ -167,6 +194,8 @@ async def update_article(
         article.content = request.content
         article.word_count = count_words(request.content)
         article.reading_time = calculate_reading_time(article.word_count)
+    if request.article_type is not None:
+        article.article_type = request.article_type.value
     if request.target_keyword is not None:
         article.target_keyword = request.target_keyword
     if request.secondary_keywords is not None:

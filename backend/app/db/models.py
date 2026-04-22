@@ -84,6 +84,9 @@ class PublishingConfig(Base):
 
 class Article(Base):
     __tablename__ = "articles"
+    __table_args__ = (
+        UniqueConstraint("user_id", "slug", name="uq_user_slug"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
@@ -93,8 +96,8 @@ class Article(Base):
     excerpt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     word_count: Mapped[int] = mapped_column(Integer, default=0)
     reading_time: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[str] = mapped_column(String(20), default="draft")
-    article_type: Mapped[str] = mapped_column(String(50), default="magic")
+    status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
+    article_type: Mapped[str] = mapped_column(String(50), default="magic", index=True)
     target_keyword: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     secondary_keywords: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
     tone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -104,7 +107,7 @@ class Article(Base):
     featured_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="editor")
     published_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

@@ -9,6 +9,12 @@ class MagicWriter(ContentGenerator):
         start_time = time.time()
         result = GenerationResult()
 
+        validation_error = self.validate_input(request)
+        if validation_error:
+            result.errors.append(validation_error)
+            result.processing_time = time.time() - start_time
+            return result
+
         try:
             keyword = request.target_keywords[0] if request.target_keywords else "general topic"
             
@@ -115,12 +121,28 @@ Return the complete article in Markdown format."""
         return lines[0].strip()
 
     def _generate_meta_description(self, content: str) -> str:
-        sentences = content.split('.')
+        import re
+        
+        content = re.sub(r'\n+', ' ', content)
+        content = re.sub(r'\s+', ' ', content)
+        
+        sentences = re.split(r'(?<=[.!?])\s+', content)
+        
         meta = ""
-        for sentence in sentences[:3]:
+        for sentence in sentences:
             sentence = sentence.strip()
+            if not sentence:
+                continue
+            
             if len(meta) + len(sentence) + 1 <= 160:
-                meta += sentence + ". "
+                meta = sentence
             else:
                 break
+        
+        if not meta:
+            meta = content[:157].rsplit(' ', 1)[0] + "..."
+        
+        if not meta.endswith(('.', '!', '?')):
+            meta = meta.rstrip(',;:') + "."
+        
         return meta.strip()

@@ -2,8 +2,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
 import uuid
+import logging
 
 from app.services.llm_service import LLMService, LLMMessage, LLMResponse
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -60,6 +63,19 @@ class ContentGenerator(ABC):
     async def generate(self, request: GenerationRequest) -> GenerationResult:
         pass
 
+    def validate_input(self, request: GenerationRequest) -> Optional[str]:
+        if not request.user_id:
+            return "user_id is required"
+        if not request.target_keywords and not request.custom_prompt:
+            return "Either target_keywords or custom_prompt is required"
+        if request.word_count_min > request.word_count_max:
+            return "word_count_min cannot be greater than word_count_max"
+        if request.num_subheadings < 1:
+            return "num_subheadings must be at least 1"
+        if request.num_faqs < 0:
+            return "num_faqs cannot be negative"
+        return None
+
     async def call_llm(
         self,
         messages: list[LLMMessage],
@@ -67,6 +83,7 @@ class ContentGenerator(ABC):
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
+        logger.debug(f"Calling LLM with {len(messages)} messages")
         return await self.llm_service.generate(
             messages=messages,
             system=system,
