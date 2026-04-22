@@ -115,7 +115,7 @@ class ArticleVersion(Base):
     __tablename__ = "article_versions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    article_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("articles.id"), index=True)
+    article_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="CASCADE"), index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     word_count: Mapped[int] = mapped_column(Integer, default=0)

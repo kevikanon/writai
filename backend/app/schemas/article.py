@@ -52,6 +52,13 @@ class ArticleResponse(BaseModel):
             raise ValueError('must be non-negative')
         return v
 
+    @field_validator('meta_title')
+    @classmethod
+    def validate_meta_title(cls, v: str) -> str:
+        if v and len(v) > 60:
+            raise ValueError('must be 60 characters or less for SEO')
+        return v
+
     model_config = ConfigDict(from_attributes=True)
 
 
