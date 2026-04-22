@@ -22,6 +22,14 @@ class ArticleType(str, Enum):
     MANUAL = "manual"
 
 
+class ArticleListResponse(BaseModel):
+    items: list[ArticleResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 class ArticleResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID

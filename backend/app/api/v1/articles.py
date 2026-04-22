@@ -1,9 +1,10 @@
 import uuid
 from typing import Annotated
+import math
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select
 
 from app.db.database import get_db
 from app.db.models import Article, ArticleVersion, User
@@ -12,6 +13,7 @@ from app.schemas.article import (
     ArticleCreate,
     ArticleUpdate,
     ArticleVersionResponse,
+    ArticleListResponse,
 )
 from app.api.v1.users import CurrentUser
 
@@ -37,7 +39,7 @@ def count_words(text: str) -> int:
     return len(text.split())
 
 
-@router.get("", response_model=list[ArticleResponse])
+@router.get("", response_model=ArticleListResponse)
 async def list_articles(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
@@ -47,20 +49,33 @@ async def list_articles(
     page: int = 1,
     per_page: int = 10,
 ):
-    query = select(Article).where(Article.user_id == current_user.id)
+    base_query = select(Article).where(Article.user_id == current_user.id)
 
     if status_filter:
-        query = query.where(Article.status == status_filter)
+        base_query = base_query.where(Article.status == status_filter)
     if article_type:
-        query = query.where(Article.article_type == article_type)
+        base_query = base_query.where(Article.article_type == article_type)
     if search:
-        query = query.where(Article.title.ilike(f"%{search}%"))
+        base_query = base_query.where(Article.title.ilike(f"%{search}%"))
 
-    query = query.order_by(Article.created_at.desc())
+    count_result = await db.execute(select(Article).where(Article.user_id == current_user.id))
+    total = len(count_result.scalars().all())
+
+    query = base_query.order_by(Article.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+
+    total_pages = math.ceil(total / per_page) if total > 0 else 0
+
+    return ArticleListResponse(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+    )
 
 
 @router.post("", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
