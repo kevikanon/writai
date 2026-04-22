@@ -194,6 +194,8 @@ async def update_article(
         article.content = request.content
         article.word_count = count_words(request.content)
         article.reading_time = calculate_reading_time(article.word_count)
+    if request.article_type is not None:
+        article.article_type = request.article_type.value
     if request.target_keyword is not None:
         article.target_keyword = request.target_keyword
     if request.secondary_keywords is not None:

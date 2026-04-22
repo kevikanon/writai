@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, HttpUrl, field_validator, model_validator
 
 
 class ArticleStatus(str, Enum):
@@ -66,6 +66,14 @@ class ArticleCreate(BaseModel):
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     featured_image_url: Optional[HttpUrl] = None
+
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('title cannot be empty')
+        return v
 
 
 class ArticleUpdate(BaseModel):
