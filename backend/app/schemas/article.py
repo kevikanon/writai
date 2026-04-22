@@ -1,0 +1,68 @@
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
+
+class ArticleResponse(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    title: str
+    slug: str
+    content: Optional[str] = None
+    excerpt: Optional[str] = None
+    word_count: int
+    reading_time: int
+    status: str
+    article_type: str
+    target_keyword: Optional[str] = None
+    secondary_keywords: Optional[list] = None
+    tone: Optional[str] = None
+    word_count_target: Optional[int] = None
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    featured_image_url: Optional[str] = None
+    source: str
+    published_url: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ArticleCreate(BaseModel):
+    title: str
+    content: Optional[str] = None
+    article_type: Optional[str] = "magic"
+    target_keyword: Optional[str] = None
+    secondary_keywords: Optional[list] = None
+    tone: Optional[str] = None
+    word_count_target: Optional[int] = None
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    featured_image_url: Optional[str] = None
+
+
+class ArticleUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    target_keyword: Optional[str] = None
+    secondary_keywords: Optional[list] = None
+    tone: Optional[str] = None
+    word_count_target: Optional[int] = None
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    featured_image_url: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ArticleVersionResponse(BaseModel):
+    id: uuid.UUID
+    article_id: uuid.UUID
+    content: str
+    title: str
+    word_count: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
