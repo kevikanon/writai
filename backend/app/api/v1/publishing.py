@@ -48,11 +48,13 @@ async def create_publishing_config(
         for config in existing_default:
             config.is_default = False
 
+    site_url_str = str(request.site_url) if request.site_url else None
+
     config = PublishingConfig(
         user_id=current_user.id,
         platform=request.platform.value,
         name=request.name,
-        site_url=request.site_url,
+        site_url=site_url_str,
         category_id=request.category_id,
         is_default=request.is_default,
         is_active=True,
@@ -128,7 +130,7 @@ async def update_publishing_config(
     if request.name is not None:
         config.name = request.name
     if request.site_url is not None:
-        config.site_url = request.site_url
+        config.site_url = str(request.site_url)
     if request.category_id is not None:
         config.category_id = request.category_id
     if request.is_default is not None:
