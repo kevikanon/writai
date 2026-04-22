@@ -1,9 +1,14 @@
 import httpx
 import json
-from typing import Optional, AsyncIterator
+import asyncio
+import logging
+from typing import Optional, Callable
 from dataclasses import dataclass
+from functools import wraps
 
 from app.schemas.user_api_key import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,7 +37,6 @@ class LLMService:
             LLMProvider.ANTHROPIC: "claude-3-5-sonnet-20241022",
             LLMProvider.GOOGLE: "gemini-1.5-pro",
             LLMProvider.MISTRAL: "mistral-large-latest",
-            LLMProvider.AMAZON: "anthropic.claude-3-5-sonnet-20241022-v1:0",
         }
         return defaults.get(provider, "gpt-4o")
 
@@ -42,17 +46,67 @@ class LLMService:
         temperature: float = 0.7,
         max_tokens: int = 4096,
         system: str = None,
+        max_retries: int = 3,
     ) -> LLMResponse:
         if self.provider == LLMProvider.OPENAI:
-            return await self._generate_openai(messages, temperature, max_tokens, system)
+            return await self._generate_with_retry(
+                self._generate_openai, messages, temperature, max_tokens, system, max_retries
+            )
         elif self.provider == LLMProvider.ANTHROPIC:
-            return await self._generate_anthropic(messages, temperature, max_tokens, system)
+            return await self._generate_with_retry(
+                self._generate_anthropic, messages, temperature, max_tokens, system, max_retries
+            )
         elif self.provider == LLMProvider.GOOGLE:
-            return await self._generate_google(messages, temperature, max_tokens, system)
+            return await self._generate_with_retry(
+                self._generate_google, messages, temperature, max_tokens, system, max_retries
+            )
         elif self.provider == LLMProvider.MISTRAL:
-            return await self._generate_mistral(messages, temperature, max_tokens, system)
+            return await self._generate_with_retry(
+                self._generate_mistral, messages, temperature, max_tokens, system, max_retries
+            )
+        elif self.provider == LLMProvider.AMAZON:
+            raise ValueError("Amazon Bedrock provider requires AWS credentials setup")
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
+
+    async def _generate_with_retry(
+        self,
+        method: Callable,
+        messages: list[LLMMessage],
+        temperature: float,
+        max_tokens: int,
+        system: str,
+        max_retries: int = 3,
+    ) -> LLMResponse:
+        retryable_status_codes = {429, 500, 502, 503, 504}
+        last_exception = None
+
+        for attempt in range(max_retries):
+            try:
+                return await method(messages, temperature, max_tokens, system)
+            except httpx.TimeoutException as e:
+                last_exception = e
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} timed out")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+            except httpx.HTTPStatusError as e:
+                last_exception = e
+                if e.response.status_code in retryable_status_codes:
+                    logger.warning(f"Attempt {attempt + 1}/{max_retries} failed with {e.response.status_code}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)
+                else:
+                    raise
+            except ValueError as e:
+                last_exception = e
+                if "429" in str(e):
+                    logger.warning(f"Attempt {attempt + 1}/{max_retries} rate limited")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)
+                else:
+                    raise
+
+        raise last_exception or ValueError("Max retries exceeded")
 
     async def _generate_openai(
         self,
