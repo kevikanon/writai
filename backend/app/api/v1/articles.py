@@ -53,6 +53,13 @@ async def list_articles(
     page: int = 1,
     per_page: int = 10,
 ):
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 10
+    if per_page > 100:
+        per_page = 100
+
     base_query = select(Article).where(Article.user_id == current_user.id)
 
     if status_filter:
