@@ -71,6 +71,7 @@ class ArticleCreate(BaseModel):
 class ArticleUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    article_type: Optional[ArticleType] = None
     target_keyword: Optional[str] = None
     secondary_keywords: Optional[list] = None
     tone: Optional[str] = None
