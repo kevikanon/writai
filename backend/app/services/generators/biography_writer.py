@@ -15,7 +15,7 @@ class BiographyWriter(ContentGenerator):
             return result
 
         try:
-            subject_name = request.target_keywords[0] if request.target_keywords else request.custom_prompt
+            subject_name = request.subject_name or request.target_keywords[0] if request.target_keywords else request.custom_prompt
             if not subject_name:
                 subject_name = "the subject"
 
@@ -33,7 +33,7 @@ class BiographyWriter(ContentGenerator):
                 messages=content_messages,
                 system=self.build_system_prompt(request),
                 temperature=0.7,
-                max_tokens=4096,
+                max_tokens=self.calculate_max_tokens(request.word_count_max),
             )
 
             result.content = content_response.content
@@ -51,8 +51,8 @@ class BiographyWriter(ContentGenerator):
         return result
 
     def _build_content_prompt(self, request: GenerationRequest) -> str:
-        subject_name = request.target_keywords[0] if request.target_keywords else request.custom_prompt or "the subject"
-        profession = request.relevant_details or "not specified"
+        subject_name = request.subject_name or request.target_keywords[0] if request.target_keywords else request.custom_prompt or "the subject"
+        profession = request.profession or request.relevant_details or "not specified"
         life_events = request.target_keywords[1:] if len(request.target_keywords) > 1 else []
 
         prompt = f"""Write a comprehensive biography article about {subject_name}.
@@ -62,7 +62,7 @@ Tone: {request.tone}
 
 {"Include the following key events: " + ", ".join(life_events) if life_events else ""}
 
-{"Use chronological timeline format." if request.article_format == "timeline" else "Use standard biography structure."}
+{"Use chronological timeline format." if request.chronological_timeline else "Use standard biography structure."}
 
 Structure requirements:
 1. Introduction - Early life and background

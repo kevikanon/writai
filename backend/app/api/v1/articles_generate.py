@@ -1,7 +1,7 @@
 import uuid
 import logging
-from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 import httpx
@@ -10,7 +10,7 @@ from app.db.database import get_db
 from app.db.models import Article, ArticleVersion, User
 from app.schemas.article import ArticleResponse
 from app.schemas.user_api_key import LLMProvider
-from app.services.generators import MagicWriter, GenerationRequest
+from app.services.generators import GenerationRequest, GeneratorType, get_generator
 from app.services.llm_service import get_llm_service
 from app.api.v1.users import CurrentUser
 
@@ -25,6 +25,7 @@ async def generate_article(
     db: AsyncSession = Depends(get_db),
     provider: LLMProvider = LLMProvider.OPENAI,
     model: Optional[str] = None,
+    generator_type: GeneratorType = GeneratorType.MAGIC,
     target_keywords: str = None,
     word_count_min: int = 800,
     word_count_max: int = 1500,
@@ -34,6 +35,11 @@ async def generate_article(
     pros_cons: bool = False,
     alternatives: bool = False,
     custom_prompt: str = None,
+    outline: dict = None,
+    subject_name: str = None,
+    profession: str = None,
+    chronological_timeline: bool = False,
+    max_keywords: int = 50,
 ):
     article_result = await db.execute(
         select(Article).where(
@@ -55,7 +61,7 @@ async def generate_article(
             detail="Cannot regenerate a published article",
         )
 
-    if not target_keywords and not article.target_keyword:
+    if not target_keywords and not article.target_keyword and generator_type != GeneratorType.MANUAL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one target keyword is required",
@@ -69,7 +75,7 @@ async def generate_article(
             detail=str(e),
         )
 
-    generator = MagicWriter(llm_service)
+    generator = get_generator(generator_type, llm_service)
 
     keywords = [target_keywords] if target_keywords else []
     if article.target_keyword and article.target_keyword not in keywords:
@@ -77,7 +83,7 @@ async def generate_article(
 
     request = GenerationRequest(
         user_id=current_user.id,
-        generator_type="magic",
+        generator_type=generator_type,
         llm_provider=provider.value,
         llm_model=model,
         target_keywords=keywords,
@@ -90,6 +96,11 @@ async def generate_article(
         pros_cons=pros_cons,
         alternatives=alternatives,
         custom_prompt=custom_prompt,
+        outline=outline,
+        subject_name=subject_name,
+        profession=profession,
+        chronological_timeline=chronological_timeline,
+        max_keywords=max_keywords,
     )
 
     try:
@@ -138,7 +149,7 @@ async def generate_article(
     article.meta_description = result.meta_description
     article.featured_image_url = result.featured_image_url
     article.status = "generated"
-    article.article_type = "magic"
+    article.article_type = generator_type.value
 
     if result.warnings:
         logger.info(f"Generation completed with warnings for article {article_id}: {result.warnings}")

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
+from enum import Enum
 import uuid
 import logging
 
@@ -9,10 +10,19 @@ from app.services.llm_service import LLMService, LLMMessage, LLMResponse
 logger = logging.getLogger(__name__)
 
 
+class GeneratorType(str, Enum):
+    MAGIC = "magic"
+    BULK = "bulk"
+    SHORT_INFO = "short_info"
+    OUTLINE = "outline"
+    BIOGRAPHY = "biography"
+    MANUAL = "manual"
+
+
 @dataclass
 class GenerationRequest:
     user_id: uuid.UUID
-    generator_type: str
+    generator_type: GeneratorType
     llm_provider: str = "openai"
     llm_model: Optional[str] = None
     target_keywords: list[str] = field(default_factory=list)
@@ -38,6 +48,7 @@ class GenerationRequest:
     subject_name: Optional[str] = None
     profession: Optional[str] = None
     chronological_timeline: bool = False
+    max_keywords: int = 50
 
 
 @dataclass
@@ -70,16 +81,17 @@ class ContentGenerator(ABC):
     def validate_input(self, request: GenerationRequest) -> Optional[str]:
         if not request.user_id:
             return "user_id is required"
-        if request.generator_type == "manual":
+        if request.generator_type == GeneratorType.MANUAL:
             return None
-        if not request.target_keywords and not request.custom_prompt:
-            return "Either target_keywords or custom_prompt is required"
+        if not request.target_keywords and not request.custom_prompt and not request.outline:
+            return "Either target_keywords, custom_prompt, or outline is required"
         if request.word_count_min > request.word_count_max:
             return "word_count_min cannot be greater than word_count_max"
-        if request.num_subheadings < 1:
-            return "num_subheadings must be at least 1"
         if request.num_faqs < 0:
             return "num_faqs cannot be negative"
+        if request.generator_type in (GeneratorType.MAGIC, GeneratorType.BULK, GeneratorType.OUTLINE):
+            if request.num_subheadings < 1:
+                return "num_subheadings must be at least 1"
         return None
 
     async def call_llm(
@@ -147,8 +159,29 @@ You create well-structured, SEO-optimized articles that are engaging and informa
 
         return meta.strip()
 
-    def parse_title(self, content: str) -> str:
-        title = content.strip()
-        title = title.strip('"').strip("'")
-        lines = title.split('\n')
-        return lines[0].strip()
+    def calculate_max_tokens(self, word_count_max: int) -> int:
+        return max(4096, word_count_max * 4)
+
+
+def get_generator(generator_type: GeneratorType, llm_service: LLMService) -> ContentGenerator:
+    from app.services.generators.magic_writer import MagicWriter
+    from app.services.generators.bulk_writer import BulkWriter
+    from app.services.generators.short_info_writer import ShortInfoWriter
+    from app.services.generators.outline_to_article import OutlineToArticle
+    from app.services.generators.biography_writer import BiographyWriter
+    from app.services.generators.manual_writer import ManualWriter
+
+    generators = {
+        GeneratorType.MAGIC: MagicWriter,
+        GeneratorType.BULK: BulkWriter,
+        GeneratorType.SHORT_INFO: ShortInfoWriter,
+        GeneratorType.OUTLINE: OutlineToArticle,
+        GeneratorType.BIOGRAPHY: BiographyWriter,
+        GeneratorType.MANUAL: ManualWriter,
+    }
+
+    generator_class = generators.get(generator_type)
+    if not generator_class:
+        raise ValueError(f"Unknown generator type: {generator_type}")
+
+    return generator_class(llm_service)

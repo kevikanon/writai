@@ -1,7 +1,6 @@
 from app.services.generators.base import ContentGenerator, GenerationRequest, GenerationResult
 from app.services.llm_service import LLMMessage
 import time
-import uuid
 
 
 class MagicWriter(ContentGenerator):
@@ -17,7 +16,7 @@ class MagicWriter(ContentGenerator):
 
         try:
             keyword = request.target_keywords[0] if request.target_keywords else "general topic"
-            
+
             if request.title:
                 result.title = request.title
             else:
@@ -34,7 +33,7 @@ class MagicWriter(ContentGenerator):
                     max_tokens=100,
                 )
                 result.title = self.parse_title(title_response.content)
-            
+
             result.slug = self.generate_slug(result.title)
 
             content_messages = [
@@ -43,14 +42,14 @@ class MagicWriter(ContentGenerator):
                     content=self._build_content_prompt(request),
                 )
             ]
-            
+
             content_response = await self.call_llm(
                 messages=content_messages,
                 system=self.build_system_prompt(request),
                 temperature=0.7,
-                max_tokens=4096,
+                max_tokens=self.calculate_max_tokens(request.word_count_max),
             )
-            
+
             result.content = content_response.content
             result.word_count = self.count_words(result.content)
             result.reading_time = self.calculate_reading_time(result.word_count)
@@ -78,7 +77,7 @@ Return only the title, no additional text."""
     def _build_content_prompt(self, request: GenerationRequest) -> str:
         keyword = request.target_keywords[0] if request.target_keywords else "the topic"
         keywords_str = ", ".join(request.target_keywords)
-        
+
         prompt = f"""Write a comprehensive SEO article about "{keyword}".
 Target keywords: {keywords_str}
 Word count: {request.word_count_min}-{request.word_count_max} words
@@ -96,7 +95,7 @@ Structure requirements:
             prompt += "5. Pros and Cons section\n"
         if request.alternatives:
             prompt += "6. Alternatives/Comparisons section\n"
-        
+
         prompt += f"""
 7. Conclusion with call-to-action
 

@@ -47,7 +47,7 @@ class ShortInfoWriter(ContentGenerator):
                 messages=content_messages,
                 system=self.build_system_prompt(request),
                 temperature=0.7,
-                max_tokens=2048,
+                max_tokens=self.calculate_max_tokens(request.word_count_max),
             )
 
             result.content = content_response.content

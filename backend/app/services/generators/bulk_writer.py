@@ -1,7 +1,6 @@
 from app.services.generators.base import ContentGenerator, GenerationRequest, GenerationResult
 from app.services.llm_service import LLMMessage
 import time
-import uuid
 
 
 class BulkWriter(ContentGenerator):
@@ -22,7 +21,7 @@ class BulkWriter(ContentGenerator):
 
         try:
             keywords = request.target_keywords
-            num_articles = min(len(keywords), 50)
+            num_keywords = min(len(keywords), request.max_keywords)
 
             if request.title:
                 result.title = request.title
@@ -44,7 +43,7 @@ class BulkWriter(ContentGenerator):
 
             result.slug = self.generate_slug(result.title)
 
-            keywords_prompt = self._build_keywords_prompt(keywords[:num_articles])
+            keywords_prompt = self._build_keywords_prompt(keywords[:num_keywords])
             content_messages = [
                 LLMMessage(
                     role="user",
@@ -56,7 +55,7 @@ class BulkWriter(ContentGenerator):
                 messages=content_messages,
                 system=self.build_system_prompt(request),
                 temperature=0.7,
-                max_tokens=4096,
+                max_tokens=self.calculate_max_tokens(request.word_count_max),
             )
 
             result.content = content_response.content
