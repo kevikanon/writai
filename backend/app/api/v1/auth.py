@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 import secrets
 import hashlib
@@ -83,7 +83,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Dep
 
     if user:
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(hours=24)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
         reset_token = PasswordResetToken(
             user_id=user.id,
@@ -104,7 +104,7 @@ async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depen
         select(PasswordResetToken).where(
             PasswordResetToken.token_hash == token_hash,
             PasswordResetToken.is_used == False,
-            PasswordResetToken.expires_at > datetime.utcnow()
+            PasswordResetToken.expires_at > datetime.now(timezone.utc)
         )
     )
     reset_token = result.scalar_one_or_none()
@@ -126,7 +126,7 @@ async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depen
 
     user.password_hash = get_password_hash(request.new_password)
     reset_token.is_used = True
-    reset_token.used_at = datetime.utcnow()
+    reset_token.used_at = datetime.now(timezone.utc)
 
     await db.commit()
 

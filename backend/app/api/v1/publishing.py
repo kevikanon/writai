@@ -50,7 +50,7 @@ async def create_publishing_config(
 
     config = PublishingConfig(
         user_id=current_user.id,
-        platform=request.platform,
+        platform=request.platform.value,
         name=request.name,
         site_url=request.site_url,
         category_id=request.category_id,

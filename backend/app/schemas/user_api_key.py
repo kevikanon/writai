@@ -1,8 +1,17 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
+
+
+class LLMProvider(str, Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
+    MISTRAL = "mistral"
+    AMAZON = "amazon"
 
 
 class UserAPIKeyResponse(BaseModel):
@@ -17,7 +26,7 @@ class UserAPIKeyResponse(BaseModel):
 
 
 class UserAPIKeyCreate(BaseModel):
-    provider: str
+    provider: LLMProvider
     api_key: str
 
 
@@ -33,7 +42,7 @@ class UserAPIKeyProviderResponse(BaseModel):
 
 
 class UserAPIKeyValidateRequest(BaseModel):
-    provider: str
+    provider: LLMProvider
     api_key: str
 
 
