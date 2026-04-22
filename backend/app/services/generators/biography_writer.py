@@ -15,7 +15,7 @@ class BiographyWriter(ContentGenerator):
             return result
 
         try:
-            subject_name = request.target_keywords[0] if request.target_keywords else request.custom_prompt
+            subject_name = request.subject_name or request.target_keywords[0] if request.target_keywords else request.custom_prompt
             if not subject_name:
                 subject_name = "the subject"
 
@@ -40,7 +40,7 @@ class BiographyWriter(ContentGenerator):
             result.word_count = self.count_words(result.content)
             result.reading_time = self.calculate_reading_time(result.word_count)
             result.meta_title = result.title[:60] if len(result.title) > 60 else result.title
-            result.meta_description = self._generate_meta_description(result.content)
+            result.meta_description = self.generate_meta_description(result.content)
             result.tokens_used = content_response.usage.get("total_tokens", 0)
             result.processing_time = time.time() - start_time
 
@@ -51,8 +51,8 @@ class BiographyWriter(ContentGenerator):
         return result
 
     def _build_content_prompt(self, request: GenerationRequest) -> str:
-        subject_name = request.target_keywords[0] if request.target_keywords else request.custom_prompt or "the subject"
-        profession = request.relevant_details or "not specified"
+        subject_name = request.subject_name or request.target_keywords[0] if request.target_keywords else request.custom_prompt or "the subject"
+        profession = request.profession or request.relevant_details or "not specified"
         life_events = request.target_keywords[1:] if len(request.target_keywords) > 1 else []
 
         prompt = f"""Write a comprehensive biography article about {subject_name}.
@@ -62,7 +62,7 @@ Tone: {request.tone}
 
 {"Include the following key events: " + ", ".join(life_events) if life_events else ""}
 
-{"Use chronological timeline format." if request.article_format == "timeline" else "Use standard biography structure."}
+{"Use chronological timeline format." if request.chronological_timeline else "Use standard biography structure."}
 
 Structure requirements:
 1. Introduction - Early life and background
@@ -83,30 +83,3 @@ Return in Markdown format."""
             prompt += f"\n\nAdditional: {request.custom_prompt}"
 
         return prompt
-
-    def _generate_meta_description(self, content: str) -> str:
-        import re
-
-        content = re.sub(r'\n+', ' ', content)
-        content = re.sub(r'\s+', ' ', content)
-
-        sentences = re.split(r'(?<=[.!?])\s+', content)
-
-        meta = ""
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if not sentence:
-                continue
-
-            if len(meta) + len(sentence) + 1 <= 160:
-                meta = sentence
-            else:
-                break
-
-        if not meta:
-            meta = content[:157].rsplit(' ', 1)[0] + "..."
-
-        if not meta.endswith(('.', '!', '?')):
-            meta = meta.rstrip(',;:') + "."
-
-        return meta.strip()
