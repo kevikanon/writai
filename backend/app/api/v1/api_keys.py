@@ -13,8 +13,11 @@ from app.schemas.user_api_key import (
     UserAPIKeyCreate,
     UserAPIKeyUpdate,
     UserAPIKeyProviderResponse,
+    UserAPIKeyValidateRequest,
+    UserAPIKeyValidateResponse,
 )
 from app.api.v1.users import CurrentUser
+from app.services.api_key_validator import api_key_validator
 
 router = APIRouter()
 
@@ -72,6 +75,14 @@ async def list_provider_status(
             )
 
     return response
+
+
+@router.post("/validate", response_model=UserAPIKeyValidateResponse)
+async def validate_api_key(
+    request: UserAPIKeyValidateRequest,
+):
+    result = await api_key_validator.validate(request.provider, request.api_key)
+    return UserAPIKeyValidateResponse(**result)
 
 
 @router.post("", response_model=UserAPIKeyResponse, status_code=status.HTTP_201_CREATED)

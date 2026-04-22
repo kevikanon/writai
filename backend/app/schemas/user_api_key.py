@@ -30,3 +30,14 @@ class UserAPIKeyProviderResponse(BaseModel):
     provider: str
     has_key: bool
     is_active: bool
+
+
+class UserAPIKeyValidateRequest(BaseModel):
+    provider: str
+    api_key: str
+
+
+class UserAPIKeyValidateResponse(BaseModel):
+    valid: bool
+    provider: str
+    error: Optional[str] = None
