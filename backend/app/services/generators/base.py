@@ -1,0 +1,98 @@
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Optional
+import uuid
+
+from app.services.llm_service import LLMService, LLMMessage, LLMResponse
+
+
+@dataclass
+class GenerationRequest:
+    user_id: uuid.UUID
+    generator_type: str
+    llm_provider: str = "openai"
+    llm_model: Optional[str] = None
+    target_keywords: list[str] = field(default_factory=list)
+    title: Optional[str] = None
+    word_count_min: int = 800
+    word_count_max: int = 1500
+    tone: str = "professional"
+    point_of_view: str = "third_person"
+    generate_ai_title: bool = True
+    slug_source: str = "keyword"
+    use_realtime_data: bool = False
+    include_images: bool = True
+    image_credit: bool = True
+    include_video: bool = False
+    custom_prompt: Optional[str] = None
+    article_format: str = "long"
+    num_subheadings: int = 5
+    num_faqs: int = 3
+    pros_cons: bool = False
+    alternatives: bool = False
+    relevant_details: Optional[str] = None
+
+
+@dataclass
+class GenerationResult:
+    article_id: Optional[uuid.UUID] = None
+    title: str = ""
+    content: str = ""
+    slug: str = ""
+    excerpt: Optional[str] = None
+    word_count: int = 0
+    reading_time: int = 0
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    featured_image_url: Optional[str] = None
+    outline: Optional[dict] = None
+    tokens_used: int = 0
+    processing_time: float = 0.0
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+
+class ContentGenerator(ABC):
+    def __init__(self, llm_service: LLMService):
+        self.llm_service = llm_service
+
+    @abstractmethod
+    async def generate(self, request: GenerationRequest) -> GenerationResult:
+        pass
+
+    async def call_llm(
+        self,
+        messages: list[LLMMessage],
+        system: str = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> LLMResponse:
+        return await self.llm_service.generate(
+            messages=messages,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    def build_system_prompt(self, request: GenerationRequest) -> str:
+        base_prompt = f"""You are an expert SEO content writer specializing in {request.tone} writing.
+You create well-structured, SEO-optimized articles that are engaging and informative."""
+        if request.use_realtime_data:
+            base_prompt += "\nYou have access to real-time data and should incorporate current information."
+        return base_prompt
+
+    def calculate_reading_time(self, word_count: int) -> int:
+        return max(1, word_count // 200)
+
+    def generate_slug(self, title: str) -> str:
+        import re
+        slug = title.lower()
+        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+        slug = re.sub(r'[\s-]+', '-', slug)
+        slug = slug.strip('-')
+        return slug
+
+    def count_words(self, text: str) -> int:
+        if not text:
+            return 0
+        return len(text.split())
