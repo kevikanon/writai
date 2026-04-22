@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 class PublishingPlatform(str, Enum):
@@ -31,7 +31,7 @@ class PublishingConfigResponse(BaseModel):
 class PublishingConfigCreate(BaseModel):
     platform: PublishingPlatform
     name: str
-    site_url: Optional[str] = None
+    site_url: Optional[HttpUrl] = None
     category_id: Optional[str] = None
     is_default: bool = False
     credentials: dict
@@ -39,7 +39,7 @@ class PublishingConfigCreate(BaseModel):
 
 class PublishingConfigUpdate(BaseModel):
     name: Optional[str] = None
-    site_url: Optional[str] = None
+    site_url: Optional[HttpUrl] = None
     category_id: Optional[str] = None
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
