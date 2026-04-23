@@ -1,11 +1,16 @@
 @import 'vuetify/styles';
 @import '@mdi/font/css/materialdesignicons.css';
 
+* {
+  box-sizing: border-box;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 #app {
@@ -15,12 +20,28 @@ html, body {
 
 .v-application {
   height: 100% !important;
+  overflow: hidden !important;
 }
 
 .v-main {
+  height: calc(100% - 48px) !important;
+  overflow: hidden !important;
+}
+
+.v-main__scrolling {
+  overflow: hidden !important;
+}
+
+.v-main > .v-main__content {
   height: 100%;
 }
 
-.v-container.fill-height {
-  min-height: 100%;
+.v-main > .v-main__content > .v-container {
+  height: 100%;
+}
+
+.home-page,
+.login-page {
+  height: 100%;
+  overflow: hidden;
 }
