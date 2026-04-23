@@ -5,12 +5,6 @@
         <v-card class="pa-8" elevation="4" width="100%" max-width="450">
           <v-card-title class="text-h4 text-center mb-4">Forgot Password</v-card-title>
           <v-card-text>
-            <v-alert v-if="authStore.error" type="error" class="mb-4">
-              {{ authStore.error }}
-            </v-alert>
-            <v-alert v-if="success" type="success" class="mb-4">
-              Password reset link sent to your email
-            </v-alert>
             <v-form @submit.prevent="handleForgot">
               <v-text-field
                 v-model="email"
@@ -45,13 +39,19 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '../composables/useToast'
 
 const authStore = useAuthStore()
+const { success, error } = useToast()
 const email = ref('')
-const success = ref(false)
 
 const handleForgot = async () => {
-  success.value = await authStore.forgotPassword(email.value)
+  const result = await authStore.forgotPassword(email.value)
+  if (result.success) {
+    success('Password reset link sent to your email')
+  } else {
+    error(result.error)
+  }
 }
 </script>
 

@@ -5,12 +5,6 @@
         <v-card class="pa-8" elevation="4" width="100%" max-width="450">
           <v-card-title class="text-h4 text-center mb-4">Reset Password</v-card-title>
           <v-card-text>
-            <v-alert v-if="authStore.error" type="error" class="mb-4">
-              {{ authStore.error }}
-            </v-alert>
-            <v-alert v-if="success" type="success" class="mb-4">
-              Password reset successfully
-            </v-alert>
             <v-form @submit.prevent="handleReset">
               <v-text-field
                 v-model="password"
@@ -53,23 +47,27 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { success: showSuccess, error: showError } = useToast()
 
 const password = ref('')
 const confirmPassword = ref('')
-const success = ref(false)
 
 const handleReset = async () => {
   if (password.value !== confirmPassword.value) {
-    authStore.error = 'Passwords do not match'
+    showError('Passwords do not match')
     return
   }
-  success.value = await authStore.resetPassword(route.params.token, password.value)
-  if (success.value) {
+  const result = await authStore.resetPassword(route.params.token, password.value)
+  if (result.success) {
+    showSuccess('Password reset successfully')
     setTimeout(() => router.push('/login'), 2000)
+  } else {
+    showError(result.error)
   }
 }
 </script>

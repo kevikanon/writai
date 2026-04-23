@@ -5,9 +5,6 @@
         <v-card class="pa-8" elevation="4" width="100%" max-width="450">
           <v-card-title class="text-h4 text-center mb-4">Register</v-card-title>
           <v-card-text>
-            <v-alert v-if="authStore.error" type="error" class="mb-4">
-              {{ authStore.error }}
-            </v-alert>
             <v-form @submit.prevent="handleRegister">
               <v-text-field
                 v-model="name"
@@ -62,18 +59,23 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { success, error } = useToast()
 
 const name = ref('')
 const email = ref('')
 const password = ref('')
 
 const handleRegister = async () => {
-  const success = await authStore.register(name.value, email.value, password.value)
-  if (success) {
+  const result = await authStore.register(name.value, email.value, password.value)
+  if (result.success) {
+    success('Registration successful!')
     router.push('/articles')
+  } else {
+    error(result.error)
   }
 }
 </script>

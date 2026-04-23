@@ -1,5 +1,6 @@
 <template>
   <v-app>
+    <Toast />
     <v-app-bar color="primary" density="compact">
       <v-app-bar-title>WritAi</v-app-bar-title>
       <v-spacer></v-spacer>
@@ -19,6 +20,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import Toast from './components/Toast.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

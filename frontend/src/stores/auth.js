@@ -25,6 +25,21 @@ api.interceptors.response.use(
   }
 )
 
+const formatValidationError = (detail) => {
+  if (Array.isArray(detail)) {
+    return detail.map((err) => {
+      let msg = err.msg || ''
+      if (msg.includes(': ')) {
+        msg = msg.split(': ').slice(1).join(': ')
+      } else if (msg.startsWith('Value error, ')) {
+        msg = msg.replace('Value error, ', '')
+      }
+      return msg
+    }).join('\n')
+  }
+  return detail || 'An error occurred'
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -47,10 +62,11 @@ export const useAuthStore = defineStore('auth', {
         this.user = data.user
         localStorage.setItem('token', data.access_token)
         localStorage.setItem('user', JSON.stringify(data.user))
-        return true
+        return { success: true }
       } catch (err) {
-        this.error = err.response?.data?.detail || 'Login failed'
-        return false
+        const msg = formatValidationError(err.response?.data?.detail)
+        this.error = msg
+        return { success: false, error: msg }
       } finally {
         this.loading = false
       }
@@ -65,10 +81,11 @@ export const useAuthStore = defineStore('auth', {
         this.user = data.user
         localStorage.setItem('token', data.access_token)
         localStorage.setItem('user', JSON.stringify(data.user))
-        return true
+        return { success: true }
       } catch (err) {
-        this.error = err.response?.data?.detail || 'Registration failed'
-        return false
+        const msg = formatValidationError(err.response?.data?.detail)
+        this.error = msg
+        return { success: false, error: msg }
       } finally {
         this.loading = false
       }
@@ -86,10 +103,11 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       try {
         await api.post('/auth/forgot-password', { email })
-        return true
+        return { success: true }
       } catch (err) {
-        this.error = err.response?.data?.detail || 'Request failed'
-        return false
+        const msg = formatValidationError(err.response?.data?.detail)
+        this.error = msg
+        return { success: false, error: msg }
       } finally {
         this.loading = false
       }
@@ -100,10 +118,11 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       try {
         await api.post('/auth/reset-password', { token, password })
-        return true
+        return { success: true }
       } catch (err) {
-        this.error = err.response?.data?.detail || 'Reset failed'
-        return false
+        const msg = formatValidationError(err.response?.data?.detail)
+        this.error = msg
+        return { success: false, error: msg }
       } finally {
         this.loading = false
       }
