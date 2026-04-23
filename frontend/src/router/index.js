@@ -44,6 +44,11 @@ const routes = [
     component: () => import('../views/ArticleEditView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    redirect: '/',
+  },
 ]
 
 const router = createRouter({
