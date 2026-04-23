@@ -8,40 +8,18 @@
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
+  min-height: 100%;
 }
 
 #app {
-  height: 100%;
-  width: 100%;
+  min-height: 100vh;
 }
 
 .v-application {
-  height: 100% !important;
-  overflow: hidden !important;
-}
-
-.v-main {
-  height: calc(100% - 48px) !important;
-  overflow: hidden !important;
-}
-
-.v-main__scrolling {
-  overflow: hidden !important;
-}
-
-.v-main > .v-main__content {
-  height: 100%;
-}
-
-.v-main > .v-main__content > .v-container {
-  height: 100%;
+  min-height: 100vh;
 }
 
 .home-page,
 .login-page {
-  height: 100%;
-  overflow: hidden;
+  min-height: calc(100vh - 48px);
 }
