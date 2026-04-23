@@ -1,8 +1,8 @@
 <template>
-  <v-container class="fill-height" fluid>
-    <v-row align="center" justify="center">
-      <v-col cols="12" sm="10" md="8" lg="6" xl="4">
-        <v-card class="pa-8" elevation="4">
+  <v-container fluid class="login-page">
+    <v-row no-gutters class="fill-height">
+      <v-col cols="12" class="d-flex align-center justify-center">
+        <v-card class="pa-8" elevation="4" width="100%" max-width="450">
           <v-card-title class="text-h4 text-center mb-4">Forgot Password</v-card-title>
           <v-card-text>
             <v-alert v-if="authStore.error" type="error" class="mb-4">
@@ -54,3 +54,10 @@ const handleForgot = async () => {
   success.value = await authStore.forgotPassword(email.value)
 }
 </script>
+
+<style scoped>
+.login-page {
+  height: calc(100vh - 48px);
+  overflow: hidden;
+}
+</style>
