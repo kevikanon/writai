@@ -15,6 +15,7 @@
         <v-card class="mb-4">
           <v-card-title>API Keys</v-card-title>
           <v-card-text>
+            <v-progress-linear v-if="loading" indeterminate class="mb-4" />
             <v-alert v-if="apiKeyError" type="error" class="mb-2">{{ apiKeyError }}</v-alert>
             <v-list>
               <v-list-item v-for="key in apiKeys" :key="key.id">
@@ -32,6 +33,7 @@
         <v-card>
           <v-card-title>Publishing</v-card-title>
           <v-card-text>
+            <v-progress-linear v-if="loading" indeterminate class="mb-4" />
             <v-alert v-if="publishError" type="error" class="mb-2">{{ publishError }}</v-alert>
             <v-list>
               <v-list-item v-for="config in publishingConfigs" :key="config.id">
@@ -81,9 +83,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useAuthStore } from '../stores/auth'
-import { api } from '../stores/auth'
+import { ref, computed, onMounted } from 'vue'
+import { useAuthStore, api } from '../stores/auth'
 
 const authStore = useAuthStore()
 const name = computed(() => authStore.user?.name || '')
@@ -91,6 +92,7 @@ const email = computed(() => authStore.user?.email || '')
 
 const apiKeys = ref([])
 const apiKeyError = ref('')
+const loading = ref(false)
 const showAddKeyDialog = ref(false)
 const newKeyProvider = ref('openai')
 const newKey = ref('')
@@ -104,11 +106,14 @@ const newConfigPlatform = ref('wordpress')
 const platforms = ['wordpress', 'blogger', 'shopify', 'webhook']
 
 const fetchApiKeys = async () => {
+  loading.value = true
   try {
     const { data } = await api.get('/api-keys')
     apiKeys.value = data
   } catch (e) {
     apiKeyError.value = e.response?.data?.detail || 'Failed to fetch API keys'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -133,11 +138,14 @@ const deleteKey = async (id) => {
 }
 
 const fetchPublishingConfigs = async () => {
+  loading.value = true
   try {
     const { data } = await api.get('/publishing')
     publishingConfigs.value = data
   } catch (e) {
     publishError.value = e.response?.data?.detail || 'Failed to fetch configs'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -161,6 +169,8 @@ const deleteConfig = async (id) => {
   }
 }
 
-fetchApiKeys()
-fetchPublishingConfigs()
+onMounted(() => {
+  fetchApiKeys()
+  fetchPublishingConfigs()
+})
 </script>
