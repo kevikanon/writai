@@ -26,9 +26,18 @@
         v-if="authStore.isAuthenticated"
         color="primary"
         size="x-large"
+        to="/craft"
+        class="mr-4"
+      >
+        Craft Articles
+      </v-btn>
+      <v-btn
+        v-if="authStore.isAuthenticated"
+        variant="outlined"
+        size="x-large"
         to="/articles"
       >
-        Go to Articles
+        My Articles
       </v-btn>
     </div>
   </div>
