@@ -33,6 +33,7 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     user_id: uuid.UUID
     expires_in: int
+    user: Optional[dict] = None
 
 
 class ForgotPasswordRequest(BaseModel):

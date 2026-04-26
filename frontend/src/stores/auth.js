@@ -42,7 +42,13 @@ const formatValidationError = (detail) => {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user') || 'null'),
+    user: (() => {
+      try {
+        return JSON.parse(localStorage.getItem('user')) || null
+      } catch {
+        return null
+      }
+    })(),
     token: localStorage.getItem('token') || null,
     loading: false,
     error: null,

@@ -2,7 +2,7 @@
   <v-container>
     <div class="d-flex justify-space-between align-center mb-4">
       <h1 class="text-h4">Articles</h1>
-      <v-btn color="primary" @click="createNew">New Article</v-btn>
+      <v-btn color="primary" @click="goToCraft">Craft New Article</v-btn>
     </div>
 
     <v-alert v-if="articleStore.error" type="error" class="mb-4">
@@ -11,34 +11,68 @@
 
     <v-progress-linear v-if="articleStore.loading" indeterminate />
 
-    <v-row v-if="!articleStore.loading && articleStore.articles.length === 0">
-      <v-col cols="12" class="text-center">
-        <p class="text-h6 text-grey">No articles yet</p>
-        <v-btn color="primary" @click="createNew">Create First Article</v-btn>
-      </v-col>
-    </v-row>
+    <v-card v-if="!articleStore.loading && articleStore.articles.length === 0">
+      <v-card-text class="text-center py-8">
+        <p class="text-h6 text-grey mb-4">No articles yet</p>
+        <v-btn color="primary" @click="goToCraft">Create First Article</v-btn>
+      </v-card-text>
+    </v-card>
 
-    <v-row v-else>
-      <v-col v-for="article in articleStore.articles" :key="article.id" cols="12" md="6" lg="4">
-        <v-card :to="`/articles/${article.id}`" class="h-100">
-          <v-card-title>{{ article.title || 'Untitled' }}</v-card-title>
-          <v-card-subtitle>{{ article.target_keyword }}</v-card-subtitle>
-          <v-card-text>
-            <v-chip :color="getStatusColor(article.status)" size="small">
-              {{ article.status }}
-            </v-chip>
-            <span class="ml-2">{{ article.word_count }} words</span>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+    <v-card v-else>
+      <v-data-table
+        :headers="headers"
+        :items="articleStore.articles"
+        :items-per-page="10"
+        class="elevation-0"
+      >
+        <template v-slot:item.title="{ item }">
+          <a href="#" class="text-primary font-weight-medium" @click.prevent="viewArticle(item)">
+            {{ item.title || 'Untitled' }}
+          </a>
+        </template>
 
-    <v-pagination
-      v-if="articleStore.pagination.total > articleStore.pagination.per_page"
-      v-model="page"
-      :length="totalPages"
-      @update:model-value="fetchArticles"
-    />
+        <template v-slot:item.target_keyword="{ item }">
+          <span v-if="item.target_keyword">{{ item.target_keyword }}</span>
+          <span v-else class="text-grey">-</span>
+        </template>
+
+        <template v-slot:item.status="{ item }">
+          <v-chip :color="getStatusColor(item.status)" size="small">
+            {{ item.status }}
+          </v-chip>
+        </template>
+
+        <template v-slot:item.word_count="{ item }">
+          {{ item.word_count }} words
+        </template>
+
+        <template v-slot:item.updated_at="{ item }">
+          {{ formatDate(item.updated_at) }}
+        </template>
+
+        <template v-slot:item.actions="{ item }">
+          <div class="d-flex ga-1">
+            <v-btn icon size="small" variant="text" @click="viewArticle(item)" title="View">
+              <v-icon icon="mdi-eye" size="18" />
+            </v-btn>
+            <v-btn icon size="small" variant="text" @click="editArticle(item)" title="Edit">
+              <v-icon icon="mdi-pencil" size="18" />
+            </v-btn>
+            <v-btn icon size="small" variant="text" color="error" @click="deleteArticle(item)" title="Delete">
+              <v-icon icon="mdi-delete" size="18" />
+            </v-btn>
+          </div>
+        </template>
+      </v-data-table>
+
+      <v-pagination
+        v-if="articleStore.pagination.total > articleStore.pagination.per_page"
+        v-model="page"
+        :length="totalPages"
+        @update:model-value="fetchArticles"
+        class="mt-4"
+      />
+    </v-card>
   </v-container>
 </template>
 
@@ -50,27 +84,47 @@ import { useArticleStore } from '../stores/articles'
 const router = useRouter()
 const articleStore = useArticleStore()
 
-const page = computed(() => articleStore.pagination.page)
+const page = ref(1)
+
+const headers = [
+  { title: 'Title', key: 'title', sortable: true },
+  { title: 'Keyword', key: 'target_keyword', sortable: false },
+  { title: 'Status', key: 'status', sortable: true, width: '100px' },
+  { title: 'Words', key: 'word_count', sortable: true, width: '100px' },
+  { title: 'Updated', key: 'updated_at', sortable: true, width: '150px' },
+  { title: 'Actions', key: 'actions', sortable: false, width: '140px', align: 'center' },
+]
+
 const totalPages = computed(() =>
   Math.ceil(articleStore.pagination.total / articleStore.pagination.per_page)
 )
 
 const getStatusColor = (status) => {
-  const colors = {
-    draft: 'grey',
-    generated: 'success',
-    published: 'primary',
-  }
+  const colors = { draft: 'grey', generated: 'success', published: 'primary' }
   return colors[status] || 'grey'
 }
 
-const createNew = async () => {
-  const article = await articleStore.createArticle({
-    title: 'Untitled',
-    target_keyword: '',
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric'
   })
-  if (article) {
-    router.push(`/articles/${article.id}`)
+}
+
+const goToCraft = () => {
+  router.push('/craft')
+}
+
+const viewArticle = (article) => {
+  router.push(`/articles/${article.id}`)
+}
+
+const editArticle = (article) => {
+  router.push(`/articles/${article.id}`)
+}
+
+const deleteArticle = async (article) => {
+  if (confirm(`Delete "${article.title || 'Untitled'}"?`)) {
+    await articleStore.deleteArticle(article.id)
   }
 }
 
@@ -82,3 +136,10 @@ onMounted(() => {
   fetchArticles()
 })
 </script>
+
+<style scoped>
+.article-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+</style>

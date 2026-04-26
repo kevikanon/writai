@@ -6,7 +6,7 @@
         Generate a complete SEO-optimized article from a single keyword.
       </p>
 
-      <v-form ref="form" @submit.prevent="generate">
+      <v-form ref="formRef" @submit.prevent="generate">
         <v-text-field
           v-model="form.target_keywords"
           label="Target Keyword"

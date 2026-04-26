@@ -1,12 +1,16 @@
 <template>
   <v-container v-if="article">
     <div class="d-flex justify-space-between align-center mb-4">
-      <h1 class="text-h4">Edit Article</h1>
       <div>
-        <v-btn color="primary" @click="generate" :loading="articleStore.loading">
-          Generate
+        <v-btn icon variant="text" @click="goBack" class="mr-2">
+          <v-icon icon="mdi-arrow-left" />
         </v-btn>
-        <v-btn color="success" class="ml-2" @click="publish">Publish</v-btn>
+        <span class="text-h4">Edit Article</span>
+      </div>
+      <div>
+        <v-btn color="primary" @click="save" :loading="saving">
+          Save
+        </v-btn>
         <v-btn color="error" class="ml-2" @click="deleteArticle">Delete</v-btn>
       </div>
     </div>
@@ -18,32 +22,9 @@
     <v-row>
       <v-col cols="12" md="8">
         <v-text-field v-model="article.title" label="Title" class="mb-2" />
-        <v-textarea
-          v-model="article.content"
-          label="Content"
-          rows="20"
-          class="mb-2"
-        />
+        <WysiwygEditor v-model="article.content" />
       </v-col>
       <v-col cols="12" md="4">
-        <v-card class="mb-4">
-          <v-card-title>Settings</v-card-title>
-          <v-card-text>
-            <v-text-field v-model="article.target_keyword" label="Target Keyword" />
-            <v-select
-              v-model="article.article_type"
-              :items="articleTypes"
-              label="Article Type"
-            />
-            <v-text-field v-model.number="article.word_count_target" label="Word Count" type="number" />
-            <v-select
-              v-model="article.tone"
-              :items="tones"
-              label="Tone"
-            />
-          </v-card-text>
-        </v-card>
-
         <v-card class="mb-4">
           <v-card-title>SEO</v-card-title>
           <v-card-text>
@@ -73,24 +54,36 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleStore } from '../stores/articles'
+import { useToast } from '../composables/useToast'
+import WysiwygEditor from '../components/WysiwygEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
 const articleStore = useArticleStore()
+const { success, error } = useToast()
 
 const article = computed(() => articleStore.currentArticle)
+const saving = ref(false)
 
-const articleTypes = ['magic', 'bulk', 'short_info', 'outline', 'biography', 'manual']
-const tones = ['professional', 'casual', 'formal', 'friendly', 'authoritative']
-
-const generate = async () => {
-  await articleStore.generateArticle(route.params.id, {
-    generator_type: article.value?.article_type || 'magic',
-  })
+const goBack = () => {
+  router.push(`/articles/${route.params.id}`)
 }
 
-const publish = async () => {
-  // TODO: Implement publish
+const save = async () => {
+  saving.value = true
+  try {
+    await articleStore.updateArticle(route.params.id, {
+      title: article.value.title,
+      content: article.value.content,
+      meta_title: article.value.meta_title,
+      meta_description: article.value.meta_description,
+    })
+    success('Article saved')
+  } catch (e) {
+    error(e.response?.data?.detail || 'Failed to save')
+  } finally {
+    saving.value = false
+  }
 }
 
 const deleteArticle = async () => {

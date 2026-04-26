@@ -47,7 +47,8 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     return AuthResponse(
         access_token=access_token,
         user_id=user.id,
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user={"id": str(user.id), "email": user.email, "name": user.name}
     )
 
 
@@ -72,7 +73,8 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     return AuthResponse(
         access_token=access_token,
         user_id=user.id,
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user={"id": str(user.id), "email": user.email, "name": user.name}
     )
 
 

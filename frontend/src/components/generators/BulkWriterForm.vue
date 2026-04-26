@@ -6,7 +6,7 @@
         Generate multiple SEO articles from a list of keywords (comma or line separated).
       </p>
 
-      <v-form ref="form" @submit.prevent="generate">
+      <v-form ref="formRef" @submit.prevent="generate">
         <v-textarea
           v-model="form.keywords"
           label="Keywords"

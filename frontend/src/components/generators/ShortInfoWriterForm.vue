@@ -6,7 +6,7 @@
         Generate a concise article (300-500 words) from brief information.
       </p>
 
-      <v-form ref="form" @submit.prevent="generate">
+      <v-form ref="formRef" @submit.prevent="generate">
         <v-text-field
           v-model="form.target_keywords"
           label="Main Topic / Keyword"

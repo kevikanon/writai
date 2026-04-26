@@ -40,6 +40,12 @@ const routes = [
   },
   {
     path: '/articles/:id',
+    name: 'article-view',
+    component: () => import('../views/ArticleView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/articles/:id/edit',
     name: 'article-edit',
     component: () => import('../views/ArticleEditView.vue'),
     meta: { requiresAuth: true },

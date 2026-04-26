@@ -6,7 +6,7 @@
         Generate a biography article about a person.
       </p>
 
-      <v-form ref="form" @submit.prevent="generate">
+      <v-form ref="formRef" @submit.prevent="generate">
         <v-text-field
           v-model="form.subject_name"
           label="Person's Name"
