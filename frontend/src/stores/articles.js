@@ -84,13 +84,18 @@ export const useArticleStore = defineStore('articles', {
     },
 
     async deleteArticle(id) {
+      if (!id || id === 'undefined') {
+        console.error('Invalid article ID:', id)
+        return false
+      }
       this.loading = true
       this.error = null
       try {
-        await api.delete(`/articles/${id}`)
+        const response = await api.delete(`/articles/${id}`)
         this.articles = this.articles.filter((a) => a.id !== id)
         return true
       } catch (err) {
+        console.error('Delete error:', err)
         this.error = err.response?.data?.detail || 'Failed to delete article'
         return false
       } finally {

@@ -9,6 +9,8 @@
       </div>
       <div>
         <v-btn color="primary" @click="editArticle">Edit</v-btn>
+        <v-btn color="success" class="ml-2" @click="publish">Publish</v-btn>
+        <v-btn color="error" class="ml-2" @click="deleteArticle">Delete</v-btn>
       </div>
     </div>
 
@@ -37,10 +39,12 @@
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleStore } from '../stores/articles'
+import { useToast } from '../composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const articleStore = useArticleStore()
+const { success, error } = useToast()
 
 const article = computed(() => articleStore.currentArticle)
 
@@ -55,6 +59,17 @@ const goBack = () => {
 
 const editArticle = () => {
   router.push(`/articles/${route.params.id}/edit`)
+}
+
+const publish = () => {
+  success('Publish feature coming soon')
+}
+
+const deleteArticle = async () => {
+  if (confirm(`Delete "${article.value.title || 'Untitled'}"?`)) {
+    await articleStore.deleteArticle(route.params.id)
+    router.push('/articles')
+  }
 }
 
 onMounted(() => {

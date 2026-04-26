@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 import httpx
+import markdown
 
 from app.db.database import get_db
 from app.db.models import Article, ArticleVersion, User
@@ -15,6 +16,17 @@ from app.api.v1.users import CurrentUser
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def convert_markdown_to_html(content: str) -> str:
+    import re
+    content = content.strip()
+    content = re.sub(r'^```markdown\n?', '', content)
+    content = re.sub(r'\n?```$', '', content)
+    content = content.strip()
+    if not content:
+        return content
+    return markdown.markdown(content)
 
 
 @router.post("/{article_id}/generate", response_model=ArticleResponse)
@@ -124,7 +136,7 @@ async def generate_article(
         db.add(version)
 
     article.title = result.title or article.title
-    article.content = result.content
+    article.content = convert_markdown_to_html(result.content)
     article.slug = result.slug or article.slug
     article.word_count = result.word_count
     article.reading_time = result.reading_time

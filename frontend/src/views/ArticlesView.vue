@@ -2,7 +2,16 @@
   <v-container>
     <div class="d-flex justify-space-between align-center mb-4">
       <h1 class="text-h4">Articles</h1>
-      <v-btn color="primary" @click="goToCraft">Craft New Article</v-btn>
+      <div>
+        <v-btn
+          color="error"
+          :disabled="selectedArticles.length === 0"
+          @click="deleteSelected"
+        >
+          Delete Selected ({{ selectedArticles.length }})
+        </v-btn>
+        <v-btn color="primary" class="ml-2" @click="goToCraft">Craft New Article</v-btn>
+      </div>
     </div>
 
     <v-alert v-if="articleStore.error" type="error" class="mb-4">
@@ -20,9 +29,11 @@
 
     <v-card v-else>
       <v-data-table
+        v-model="selectedArticles"
         :headers="headers"
         :items="articleStore.articles"
         :items-per-page="10"
+        show-select
         class="elevation-0"
       >
         <template v-slot:item.title="{ item }">
@@ -58,9 +69,6 @@
             <v-btn icon size="small" variant="text" @click="editArticle(item)" title="Edit">
               <v-icon icon="mdi-pencil" size="18" />
             </v-btn>
-            <v-btn icon size="small" variant="text" color="error" @click="deleteArticle(item)" title="Delete">
-              <v-icon icon="mdi-delete" size="18" />
-            </v-btn>
           </div>
         </template>
       </v-data-table>
@@ -80,11 +88,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useArticleStore } from '../stores/articles'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const articleStore = useArticleStore()
+const { success, error } = useToast()
 
 const page = ref(1)
+const selectedArticles = ref([])
 
 const headers = [
   { title: 'Title', key: 'title', sortable: true },
@@ -92,7 +103,7 @@ const headers = [
   { title: 'Status', key: 'status', sortable: true, width: '100px' },
   { title: 'Words', key: 'word_count', sortable: true, width: '100px' },
   { title: 'Updated', key: 'updated_at', sortable: true, width: '150px' },
-  { title: 'Actions', key: 'actions', sortable: false, width: '140px', align: 'center' },
+  { title: 'Actions', key: 'actions', sortable: false, width: '100px', align: 'center' },
 ]
 
 const totalPages = computed(() =>
@@ -119,12 +130,51 @@ const viewArticle = (article) => {
 }
 
 const editArticle = (article) => {
-  router.push(`/articles/${article.id}`)
+  router.push(`/articles/${article.id}/edit`)
 }
 
-const deleteArticle = async (article) => {
-  if (confirm(`Delete "${article.title || 'Untitled'}"?`)) {
-    await articleStore.deleteArticle(article.id)
+const deleteSelected = async () => {
+  if (selectedArticles.value.length === 0) return
+
+  let validArticles = []
+
+  if (typeof selectedArticles.value[0] === 'string') {
+    validArticles = selectedArticles.value.map(id => ({
+      id,
+      title: articleStore.articles.find(a => a.id === id)?.title || 'Untitled'
+    }))
+  } else {
+    validArticles = selectedArticles.value.filter(a => a.id && a.id !== 'undefined')
+  }
+
+  console.log('Valid articles to delete:', validArticles)
+
+  if (validArticles.length === 0) {
+    error('Invalid article selection')
+    return
+  }
+
+  const count = validArticles.length
+  const message = count === 1
+    ? `Delete "${validArticles[0].title || 'Untitled'}"?`
+    : `Delete ${count} articles?`
+
+  if (confirm(message)) {
+    let deletedCount = 0
+    for (const article of validArticles) {
+      console.log('Deleting article ID:', article.id)
+      const result = await articleStore.deleteArticle(article.id)
+      if (result) {
+        deletedCount++
+      }
+    }
+    if (deletedCount > 0) {
+      success(`${deletedCount} article(s) deleted`)
+      selectedArticles.value = []
+      fetchArticles()
+    } else {
+      error('Failed to delete articles')
+    }
   }
 }
 
@@ -136,10 +186,3 @@ onMounted(() => {
   fetchArticles()
 })
 </script>
-
-<style scoped>
-.article-content {
-  white-space: pre-wrap;
-  line-height: 1.6;
-}
-</style>
