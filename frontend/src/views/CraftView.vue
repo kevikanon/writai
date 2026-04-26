@@ -40,8 +40,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import MagicWriterForm from '../components/generators/MagicWriterForm.vue'
 import BulkWriterForm from '../components/generators/BulkWriterForm.vue'
 import ShortInfoWriterForm from '../components/generators/ShortInfoWriterForm.vue'
@@ -50,7 +50,14 @@ import BiographyWriterForm from '../components/generators/BiographyWriterForm.vu
 import ManualWriterForm from '../components/generators/ManualWriterForm.vue'
 
 const router = useRouter()
+const route = useRoute()
 const activeTab = ref('magic')
+
+onMounted(() => {
+  if (route.query.tab) {
+    activeTab.value = route.query.tab
+  }
+})
 
 const onGenerated = (article) => {
   router.push(`/articles/${article.id}`)
