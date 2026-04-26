@@ -13,7 +13,11 @@ class ManualWriter(ContentGenerator):
                 result.processing_time = time.time() - start_time
                 return result
 
-            content_input = request.custom_prompt or request.target_keywords[0]
+            content_input = request.custom_prompt
+            if not content_input and request.target_keywords:
+                content_input = request.target_keywords[0] if request.target_keywords else None
+            if not content_input:
+                content_input = "Untitled"
 
             result.title = request.title or "Untitled Article"
             result.slug = self.generate_slug(result.title)

@@ -5,6 +5,9 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, HttpUrl, field_validator, model_validator
 
+from app.schemas.user_api_key import LLMProvider
+from app.services.generators.base import GeneratorType
+
 
 class ArticleStatus(str, Enum):
     DRAFT = "draft"
@@ -114,3 +117,23 @@ class ArticleListResponse(BaseModel):
     page: int
     per_page: int
     total_pages: int
+
+
+class ArticleGenerateRequest(BaseModel):
+    provider: LLMProvider = LLMProvider.OPENAI
+    model: Optional[str] = None
+    generator_type: GeneratorType = GeneratorType.MAGIC
+    target_keywords: Optional[str] = None
+    word_count_min: int = 800
+    word_count_max: int = 1500
+    tone: str = "professional"
+    num_subheadings: int = 5
+    num_faqs: int = 3
+    pros_cons: bool = False
+    alternatives: bool = False
+    custom_prompt: Optional[str] = None
+    outline: Optional[dict] = None
+    subject_name: Optional[str] = None
+    profession: Optional[str] = None
+    chronological_timeline: bool = False
+    max_keywords: int = 50

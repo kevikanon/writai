@@ -162,6 +162,17 @@ You create well-structured, SEO-optimized articles that are engaging and informa
     def calculate_max_tokens(self, word_count_max: int) -> int:
         return max(4096, word_count_max * 4)
 
+    def parse_title(self, raw_title: str) -> str:
+        if not raw_title:
+            return "Untitled Article"
+        title = raw_title.strip()
+        title = title.strip('"\'`')
+        lines = title.split('\n')
+        title = lines[0].strip()
+        if len(title) > 100:
+            title = title[:97] + "..."
+        return title or "Untitled Article"
+
 
 def get_generator(generator_type: GeneratorType, llm_service: LLMService) -> ContentGenerator:
     from app.services.generators.magic_writer import MagicWriter

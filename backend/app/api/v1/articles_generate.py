@@ -1,15 +1,14 @@
 import uuid
 import logging
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 import httpx
 
 from app.db.database import get_db
 from app.db.models import Article, ArticleVersion, User
-from app.schemas.article import ArticleResponse
-from app.schemas.user_api_key import LLMProvider
+from app.schemas.article import ArticleResponse, ArticleGenerateRequest
 from app.services.generators import GenerationRequest, GeneratorType, get_generator
 from app.services.llm_service import get_llm_service
 from app.api.v1.users import CurrentUser
@@ -21,25 +20,9 @@ logger = logging.getLogger(__name__)
 @router.post("/{article_id}/generate", response_model=ArticleResponse)
 async def generate_article(
     article_id: uuid.UUID,
+    request: ArticleGenerateRequest,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    provider: LLMProvider = LLMProvider.OPENAI,
-    model: Optional[str] = None,
-    generator_type: GeneratorType = GeneratorType.MAGIC,
-    target_keywords: str = None,
-    word_count_min: int = 800,
-    word_count_max: int = 1500,
-    tone: str = "professional",
-    num_subheadings: int = 5,
-    num_faqs: int = 3,
-    pros_cons: bool = False,
-    alternatives: bool = False,
-    custom_prompt: str = None,
-    outline: dict = None,
-    subject_name: str = None,
-    profession: str = None,
-    chronological_timeline: bool = False,
-    max_keywords: int = 50,
 ):
     article_result = await db.execute(
         select(Article).where(
@@ -61,50 +44,50 @@ async def generate_article(
             detail="Cannot regenerate a published article",
         )
 
-    if not target_keywords and not article.target_keyword and generator_type != GeneratorType.MANUAL:
+    if not request.target_keywords and not article.target_keyword and request.generator_type != GeneratorType.MANUAL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one target keyword is required",
         )
 
     try:
-        llm_service = await get_llm_service(db, current_user.id, provider, model)
+        llm_service = await get_llm_service(db, current_user.id, request.provider, request.model)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
 
-    generator = get_generator(generator_type, llm_service)
+    generator = get_generator(request.generator_type, llm_service)
 
-    keywords = [target_keywords] if target_keywords else []
+    keywords = [request.target_keywords] if request.target_keywords else []
     if article.target_keyword and article.target_keyword not in keywords:
         keywords.insert(0, article.target_keyword)
 
-    request = GenerationRequest(
+    gen_request = GenerationRequest(
         user_id=current_user.id,
-        generator_type=generator_type,
-        llm_provider=provider.value,
-        llm_model=model,
+        generator_type=request.generator_type,
+        llm_provider=request.provider.value,
+        llm_model=request.model,
         target_keywords=keywords,
         title=article.title if article.title and article.title != "Untitled" else None,
-        word_count_min=word_count_min,
-        word_count_max=word_count_max,
-        tone=tone,
-        num_subheadings=num_subheadings,
-        num_faqs=num_faqs,
-        pros_cons=pros_cons,
-        alternatives=alternatives,
-        custom_prompt=custom_prompt,
-        outline=outline,
-        subject_name=subject_name,
-        profession=profession,
-        chronological_timeline=chronological_timeline,
-        max_keywords=max_keywords,
+        word_count_min=request.word_count_min,
+        word_count_max=request.word_count_max,
+        tone=request.tone,
+        num_subheadings=request.num_subheadings,
+        num_faqs=request.num_faqs,
+        pros_cons=request.pros_cons,
+        alternatives=request.alternatives,
+        custom_prompt=request.custom_prompt,
+        outline=request.outline,
+        subject_name=request.subject_name,
+        profession=request.profession,
+        chronological_timeline=request.chronological_timeline,
+        max_keywords=request.max_keywords,
     )
 
     try:
-        result = await generator.generate(request)
+        result = await generator.generate(gen_request)
     except httpx.TimeoutException:
         logger.error(f"Generation timed out for article {article_id}")
         raise HTTPException(
@@ -149,7 +132,7 @@ async def generate_article(
     article.meta_description = result.meta_description
     article.featured_image_url = result.featured_image_url
     article.status = "generated"
-    article.article_type = generator_type.value
+    article.article_type = request.generator_type.value
 
     if result.warnings:
         logger.info(f"Generation completed with warnings for article {article_id}: {result.warnings}")

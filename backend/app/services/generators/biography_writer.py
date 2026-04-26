@@ -15,7 +15,11 @@ class BiographyWriter(ContentGenerator):
             return result
 
         try:
-            subject_name = request.subject_name or request.target_keywords[0] if request.target_keywords else request.custom_prompt
+            subject_name = request.subject_name
+            if not subject_name and request.target_keywords:
+                subject_name = request.target_keywords[0]
+            if not subject_name and request.custom_prompt:
+                subject_name = request.custom_prompt[:50]
             if not subject_name:
                 subject_name = "the subject"
 
