@@ -31,4 +31,21 @@ app.include_router(articles_generate.router, prefix="/api/v1/articles", tags=["a
 
 @app.get("/api/v1/health")
 async def health_check():
-    return {"status": "healthy", "version": "1.0.0"}
+    from sqlalchemy import text
+    from app.db.database import AsyncSessionLocal
+    
+    db_status = "unhealthy"
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+            db_status = "healthy"
+    except Exception:
+        pass
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "version": "1.0.0",
+        "components": {
+            "database": db_status,
+        }
+    }
