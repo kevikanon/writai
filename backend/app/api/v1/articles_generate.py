@@ -1,9 +1,11 @@
 import uuid
 import logging
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import httpx
 import markdown
 
@@ -16,6 +18,8 @@ from app.api.v1.users import CurrentUser
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 def convert_markdown_to_html(content: str) -> str:
@@ -30,10 +34,12 @@ def convert_markdown_to_html(content: str) -> str:
 
 
 @router.post("/{article_id}/generate", response_model=ArticleResponse)
+@limiter.limit("10/minute")
 async def generate_article(
     article_id: uuid.UUID,
     request: ArticleGenerateRequest,
     current_user: CurrentUser,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     article_result = await db.execute(
