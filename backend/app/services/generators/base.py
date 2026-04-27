@@ -14,7 +14,10 @@ class GeneratorType(str, Enum):
     MAGIC = "magic"
     BULK = "bulk"
     SHORT_INFO = "short_info"
-    OUTLINE = "outline"
+    OUTLINE_TO_ARTICLE = "outline_to_article"
+    AMAZON_REVIEW = "amazon_review"
+    CLIENT = "client"
+    PRODUCT_LINK_TO_BLOG = "product_link_to_blog"
     BIOGRAPHY = "biography"
     MANUAL = "manual"
 
@@ -89,7 +92,7 @@ class ContentGenerator(ABC):
             return "word_count_min cannot be greater than word_count_max"
         if request.num_faqs < 0:
             return "num_faqs cannot be negative"
-        if request.generator_type in (GeneratorType.MAGIC, GeneratorType.BULK, GeneratorType.OUTLINE):
+        if request.generator_type in (GeneratorType.MAGIC, GeneratorType.BULK, GeneratorType.OUTLINE_TO_ARTICLE):
             if request.num_subheadings < 1:
                 return "num_subheadings must be at least 1"
         return None
@@ -186,7 +189,7 @@ def get_generator(generator_type: GeneratorType, llm_service: LLMService) -> Con
         GeneratorType.MAGIC: MagicWriter,
         GeneratorType.BULK: BulkWriter,
         GeneratorType.SHORT_INFO: ShortInfoWriter,
-        GeneratorType.OUTLINE: OutlineToArticle,
+        GeneratorType.OUTLINE_TO_ARTICLE: OutlineToArticle,
         GeneratorType.BIOGRAPHY: BiographyWriter,
         GeneratorType.MANUAL: ManualWriter,
     }

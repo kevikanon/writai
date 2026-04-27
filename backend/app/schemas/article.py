@@ -137,3 +137,31 @@ class ArticleGenerateRequest(BaseModel):
     profession: Optional[str] = None
     chronological_timeline: bool = False
     max_keywords: int = 50
+
+    @field_validator('outline')
+    @classmethod
+    def validate_outline(cls, v: Optional[dict]) -> Optional[dict]:
+        if v is None:
+            return v
+        if not isinstance(v, dict):
+            raise ValueError('outline must be a dictionary')
+        if 'sections' in v and not isinstance(v['sections'], list):
+            raise ValueError('outline.sections must be a list')
+        return v
+
+    @field_validator('word_count_min', 'word_count_max')
+    @classmethod
+    def validate_word_count(cls, v: int) -> int:
+        if v < 100:
+            raise ValueError('must be at least 100')
+        if v > 10000:
+            raise ValueError('must not exceed 10000')
+        return v
+
+    @field_validator('tone')
+    @classmethod
+    def validate_tone(cls, v: str) -> str:
+        valid_tones = ['professional', 'casual', 'formal', 'friendly', 'authoritative', 'humorous']
+        if v not in valid_tones:
+            raise ValueError(f'must be one of: {", ".join(valid_tones)}')
+        return v

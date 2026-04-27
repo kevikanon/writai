@@ -193,7 +193,7 @@ const generate = async () => {
 
     if (article) {
       const generated = await articleStore.generateArticle(article.id, {
-        generator_type: 'outline',
+        generator_type: 'outline_to_article',
         provider: form.provider,
         target_keywords: form.target_keywords,
         title: form.title || undefined,

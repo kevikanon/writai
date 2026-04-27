@@ -1,14 +1,13 @@
 import uuid
 import logging
-from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select
 import httpx
 import markdown
 
 from app.db.database import get_db
-from app.db.models import Article, ArticleVersion, User
+from app.db.models import Article, ArticleVersion
 from app.schemas.article import ArticleResponse, ArticleGenerateRequest
 from app.services.generators import GenerationRequest, GeneratorType, get_generator
 from app.services.llm_service import get_llm_service

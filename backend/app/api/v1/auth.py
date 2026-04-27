@@ -11,7 +11,8 @@ from app.db.database import get_db
 from app.db.models import User, PasswordResetToken
 from app.schemas.auth import (
     RegisterRequest, LoginRequest, AuthResponse,
-    ForgotPasswordRequest, ResetPasswordRequest
+    ForgotPasswordRequest, ResetPasswordRequest,
+    RefreshTokenRequest
 )
 from app.core.security import verify_password, get_password_hash
 from app.core.config import settings
@@ -143,17 +144,12 @@ async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depen
 
 @router.post("/refresh", response_model=AuthResponse)
 async def refresh_token(
-    request: dict,
+    request: RefreshTokenRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    refresh_token = request.get("refresh_token")
-    if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Refresh token required"
-        )
-
-    user_id = verify_refresh_token(refresh_token)
+    old_refresh_token = request.refresh_token
+    
+    user_id = verify_refresh_token(old_refresh_token)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -171,6 +167,7 @@ async def refresh_token(
 
     access_token = create_access_token(user.id)
     new_refresh_token = create_refresh_token(user.id)
+    
     return AuthResponse(
         access_token=access_token,
         refresh_token=new_refresh_token,
