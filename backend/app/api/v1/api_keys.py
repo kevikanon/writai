@@ -19,6 +19,7 @@ from app.schemas.user_api_key import (
 )
 from app.api.v1.users import CurrentUser
 from app.services.api_key_validator import api_key_validator
+from app.core.encryption import encrypt_api_key
 
 router = APIRouter()
 
@@ -92,11 +93,12 @@ async def create_api_key(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
+    encrypted = encrypt_api_key(request.api_key)
     api_key = UserAPIKey(
         user_id=current_user.id,
         provider=request.provider.value,
         key_hash=hash_api_key(request.api_key),
-        encrypted_key=request.api_key,
+        encrypted_key=encrypted,
     )
     db.add(api_key)
     
@@ -165,7 +167,7 @@ async def update_api_key(
 
     if request.api_key is not None:
         api_key.key_hash = hash_api_key(request.api_key)
-        api_key.encrypted_key = request.api_key
+        api_key.encrypted_key = encrypt_api_key(request.api_key)
     if request.is_active is not None:
         api_key.is_active = request.is_active
 

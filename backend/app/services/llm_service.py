@@ -290,4 +290,7 @@ async def get_llm_service(
     if not api_key_record:
         raise ValueError(f"No active API key found for {provider.value}")
 
-    return LLMService(api_key_record.encrypted_key, provider, model)
+    from app.core.encryption import decrypt_api_key
+    decrypted_key = decrypt_api_key(api_key_record.encrypted_key)
+
+    return LLMService(decrypted_key, provider, model)
