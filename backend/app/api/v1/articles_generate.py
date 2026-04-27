@@ -126,30 +126,38 @@ async def generate_article(
             detail=f"Generation failed: {result.errors[0]}",
         )
 
-    if article.content:
-        version = ArticleVersion(
-            article_id=article.id,
-            title=article.title,
-            content=article.content,
-            word_count=article.word_count,
+    try:
+        if article.content:
+            version = ArticleVersion(
+                article_id=article.id,
+                title=article.title,
+                content=article.content,
+                word_count=article.word_count,
+            )
+            db.add(version)
+
+        article.title = result.title or article.title
+        article.content = convert_markdown_to_html(result.content)
+        article.slug = result.slug or article.slug
+        article.word_count = result.word_count
+        article.reading_time = result.reading_time
+        article.meta_title = result.meta_title
+        article.meta_description = result.meta_description
+        article.featured_image_url = result.featured_image_url
+        article.status = "generated"
+        article.article_type = request.generator_type.value
+
+        if result.warnings:
+            logger.info(f"Generation completed with warnings for article {article_id}: {result.warnings}")
+
+        await db.commit()
+        await db.refresh(article)
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to save article {article_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save generated article",
         )
-        db.add(version)
-
-    article.title = result.title or article.title
-    article.content = convert_markdown_to_html(result.content)
-    article.slug = result.slug or article.slug
-    article.word_count = result.word_count
-    article.reading_time = result.reading_time
-    article.meta_title = result.meta_title
-    article.meta_description = result.meta_description
-    article.featured_image_url = result.featured_image_url
-    article.status = "generated"
-    article.article_type = request.generator_type.value
-
-    if result.warnings:
-        logger.info(f"Generation completed with warnings for article {article_id}: {result.warnings}")
-
-    await db.commit()
-    await db.refresh(article)
 
     return article
