@@ -19,12 +19,15 @@ logger = logging.getLogger(__name__)
 
 def convert_markdown_to_html(content: str) -> str:
     import re
+    import html
     content = content.strip()
     content = re.sub(r'^```markdown\n?', '', content)
+    content = re.sub(r'^```\n?', '', content)
     content = re.sub(r'\n?```$', '', content)
     content = content.strip()
     if not content:
         return content
+    content = html.unescape(content)
     return markdown.markdown(content)
 
 

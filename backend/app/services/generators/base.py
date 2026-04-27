@@ -137,7 +137,15 @@ You create well-structured, SEO-optimized articles that are engaging and informa
 
     def generate_meta_description(self, content: str) -> str:
         import re
+        import html
 
+        content = html.unescape(content)
+        content = re.sub(r'```[\s\S]*?```', '', content)
+        content = re.sub(r'`[^`]+`', '', content)
+        content = re.sub(r'#+\s+', '', content)
+        content = re.sub(r'\*\*([^*]+)\*\*', r'\1', content)
+        content = re.sub(r'\*([^*]+)\*', r'\1', content)
+        content = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', content)
         content = re.sub(r'\n+', ' ', content)
         content = re.sub(r'\s+', ' ', content)
 
