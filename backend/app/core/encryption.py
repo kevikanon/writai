@@ -1,5 +1,5 @@
 import os
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 
 from app.core.config import settings
@@ -20,4 +20,7 @@ def encrypt_api_key(api_key: str) -> str:
 def decrypt_api_key(encrypted_api_key: str) -> str:
     key = get_encryption_key()
     f = Fernet(key)
-    return f.decrypt(encrypted_api_key.encode()).decode()
+    try:
+        return f.decrypt(encrypted_api_key.encode()).decode()
+    except InvalidToken:
+        return encrypted_api_key
