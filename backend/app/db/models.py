@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text, Integer, Index
@@ -7,6 +7,11 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB, ENUM
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
 
 ARTICLE_TYPES = ["magic", "bulk", "short_info", "outline_to_article", "amazon_review", "client", "product_link_to_blog", "biography", "manual"]
 ARTICLE_STATUSES = ["draft", "generated", "published"]
@@ -21,8 +26,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class PasswordResetToken(Base):
@@ -34,7 +39,7 @@ class PasswordResetToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime)
     used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class UserSettings(Base):
@@ -46,8 +51,8 @@ class UserSettings(Base):
     default_article_type: Mapped[Optional[str]] = mapped_column(String(50), default="magic")
     auto_save: Mapped[bool] = mapped_column(Boolean, default=True)
     realtime_data_default: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class UserAPIKey(Base):
@@ -62,8 +67,8 @@ class UserAPIKey(Base):
     key_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     encrypted_key: Mapped[str] = mapped_column(String(500), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class PublishingConfig(Base):
@@ -81,8 +86,8 @@ class PublishingConfig(Base):
     category_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class Article(Base):
@@ -112,8 +117,8 @@ class Article(Base):
     featured_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="editor")
     published_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class ArticleVersion(Base):
@@ -127,4 +132,4 @@ class ArticleVersion(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     word_count: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)

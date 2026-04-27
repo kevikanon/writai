@@ -1,14 +1,35 @@
 import httpx
-import json
 import asyncio
 import logging
 from typing import Optional, Callable
 from dataclasses import dataclass
-from functools import wraps
 
 from app.schemas.user_api_key import LLMProvider
 
 logger = logging.getLogger(__name__)
+
+
+_global_client: Optional[httpx.AsyncClient] = None
+_client_lock = asyncio.Lock()
+
+
+async def get_global_client() -> httpx.AsyncClient:
+    global _global_client
+    async with _client_lock:
+        if _global_client is None or _global_client.is_closed:
+            _global_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(120.0, connect=30.0),
+                limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+            )
+        return _global_client
+
+
+async def close_global_client():
+    global _global_client
+    async with _client_lock:
+        if _global_client and not _global_client.is_closed:
+            await _global_client.aclose()
+            _global_client = None
 
 
 @dataclass
@@ -30,19 +51,6 @@ class LLMService:
         self.api_key = api_key
         self.provider = provider
         self.model = model or self._get_default_model(provider)
-        self._client: Optional[httpx.AsyncClient] = None
-
-    async def get_client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(120.0, connect=30.0),
-                limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
-            )
-        return self._client
-
-    async def close(self):
-        if self._client and not self._client.is_closed:
-            await self._client.aclose()
 
     def _get_default_model(self, provider: LLMProvider) -> str:
         defaults = {
@@ -121,12 +129,6 @@ class LLMService:
 
         raise last_exception or ValueError("Max retries exceeded")
 
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-
     async def _generate_openai(
         self,
         messages: list[LLMMessage],
@@ -139,7 +141,7 @@ class LLMService:
             formatted_messages.append({"role": "system", "content": system})
         formatted_messages.extend([{"role": m.role, "content": m.content} for m in messages])
 
-        client = await self.get_client()
+        client = await get_global_client()
         response = await client.post(
             "https://api.openai.com/v1/chat/completions",
             headers={
@@ -177,7 +179,7 @@ class LLMService:
             formatted_messages.append({"role": "user", "content": f"<system>{system}</system>"})
         formatted_messages.extend([{"role": m.role, "content": m.content} for m in messages])
 
-        client = await self.get_client()
+        client = await get_global_client()
         response = await client.post(
             "https://api.anthropic.com/v1/messages",
             headers={
@@ -218,7 +220,7 @@ class LLMService:
             role = "model" if m.role == "assistant" else "user"
             formatted_contents.append({"role": role, "parts": [{"text": m.content}]})
 
-        client = await self.get_client()
+        client = await get_global_client()
         response = await client.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
             params={"key": self.api_key},
@@ -255,7 +257,7 @@ class LLMService:
             formatted_messages.append({"role": "system", "content": system})
         formatted_messages.extend([{"role": m.role, "content": m.content} for m in messages])
 
-        client = await self.get_client()
+        client = await get_global_client()
         response = await client.post(
             "https://api.mistral.ai/v1/chat/completions",
             headers={

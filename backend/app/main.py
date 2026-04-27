@@ -1,8 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from app.api.v1 import auth, users, api_keys, publishing, articles, articles_generate
 from app.core.config import settings
+from app.services.llm_service import close_global_client
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await close_global_client()
+
 
 app = FastAPI(
     title="WritAi API",
@@ -11,6 +20,7 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
