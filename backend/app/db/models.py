@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text, Integer
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text, Integer, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -86,6 +86,8 @@ class Article(Base):
     __tablename__ = "articles"
     __table_args__ = (
         UniqueConstraint("user_id", "slug", name="uq_user_slug"),
+        Index("ix_articles_user_status", "user_id", "status"),
+        Index("ix_articles_user_created", "user_id", "created_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -113,6 +115,9 @@ class Article(Base):
 
 class ArticleVersion(Base):
     __tablename__ = "article_versions"
+    __table_args__ = (
+        Index("ix_article_versions_created", "article_id", "created_at"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     article_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("articles.id", ondelete="CASCADE"), index=True)
