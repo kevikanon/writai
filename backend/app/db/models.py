@@ -3,10 +3,13 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text, Integer, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ENUM
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+
+ARTICLE_TYPES = ["magic", "bulk", "short_info", "outline_to_article", "amazon_review", "client", "product_link_to_blog", "biography", "manual"]
+ARTICLE_STATUSES = ["draft", "generated", "published"]
 
 
 class User(Base):
@@ -99,7 +102,7 @@ class Article(Base):
     word_count: Mapped[int] = mapped_column(Integer, default=0)
     reading_time: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
-    article_type: Mapped[str] = mapped_column(String(50), default="magic", index=True)
+    article_type: Mapped[str] = mapped_column(String(50), default="magic", index=True, comment=f"Valid types: {', '.join(ARTICLE_TYPES)}")
     target_keyword: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     secondary_keywords: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
     tone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
