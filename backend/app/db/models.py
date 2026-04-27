@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Text, Integer, Index
@@ -10,7 +10,7 @@ from app.db.database import Base
 
 
 def utc_now():
-    return datetime.now(timezone.utc)
+    return datetime.utcnow()
 
 
 ARTICLE_TYPES = ["magic", "bulk", "short_info", "outline_to_article", "amazon_review", "client", "product_link_to_blog", "biography", "manual"]
