@@ -36,10 +36,10 @@ def convert_markdown_to_html(content: str) -> str:
 @router.post("/{article_id}/generate", response_model=ArticleResponse)
 @limiter.limit("10/minute")
 async def generate_article(
+    request: Request,
     article_id: uuid.UUID,
-    request: ArticleGenerateRequest,
+    body: ArticleGenerateRequest,
     current_user: CurrentUser,
-    http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     article_result = await db.execute(
@@ -62,46 +62,46 @@ async def generate_article(
             detail="Cannot regenerate a published article",
         )
 
-    if not request.target_keywords and not article.target_keyword and request.generator_type != GeneratorType.MANUAL:
+    if not body.target_keywords and not article.target_keyword and body.generator_type != GeneratorType.MANUAL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one target keyword is required",
         )
 
     try:
-        llm_service = await get_llm_service(db, current_user.id, request.provider, request.model)
+        llm_service = await get_llm_service(db, current_user.id, body.provider, body.model)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
 
-    generator = get_generator(request.generator_type, llm_service)
+    generator = get_generator(body.generator_type, llm_service)
 
-    keywords = [request.target_keywords] if request.target_keywords else []
+    keywords = [body.target_keywords] if body.target_keywords else []
     if article.target_keyword and article.target_keyword not in keywords:
         keywords.insert(0, article.target_keyword)
 
     gen_request = GenerationRequest(
         user_id=current_user.id,
-        generator_type=request.generator_type,
-        llm_provider=request.provider.value,
-        llm_model=request.model,
+        generator_type=body.generator_type,
+        llm_provider=body.provider.value,
+        llm_model=body.model,
         target_keywords=keywords,
         title=article.title if article.title and article.title != "Untitled" else None,
-        word_count_min=request.word_count_min,
-        word_count_max=request.word_count_max,
-        tone=request.tone,
-        num_subheadings=request.num_subheadings,
-        num_faqs=request.num_faqs,
-        pros_cons=request.pros_cons,
-        alternatives=request.alternatives,
-        custom_prompt=request.custom_prompt,
-        outline=request.outline,
-        subject_name=request.subject_name,
-        profession=request.profession,
-        chronological_timeline=request.chronological_timeline,
-        max_keywords=request.max_keywords,
+        word_count_min=body.word_count_min,
+        word_count_max=body.word_count_max,
+        tone=body.tone,
+        num_subheadings=body.num_subheadings,
+        num_faqs=body.num_faqs,
+        pros_cons=body.pros_cons,
+        alternatives=body.alternatives,
+        custom_prompt=body.custom_prompt,
+        outline=body.outline,
+        subject_name=body.subject_name,
+        profession=body.profession,
+        chronological_timeline=body.chronological_timeline,
+        max_keywords=body.max_keywords,
     )
 
     try:
@@ -151,7 +151,7 @@ async def generate_article(
         article.meta_description = result.meta_description
         article.featured_image_url = result.featured_image_url
         article.status = "generated"
-        article.article_type = request.generator_type.value
+        article.article_type = body.generator_type.value
 
         if result.warnings:
             logger.info(f"Generation completed with warnings for article {article_id}: {result.warnings}")
