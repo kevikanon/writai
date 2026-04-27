@@ -116,41 +116,47 @@ const generate = async () => {
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
-  const keywordList = form.keywords
-    .split(/[\n,]/)
-    .map((k) => k.trim())
-    .filter((k) => k)
+  const firstKeyword = form.keywords.split(/[\n,]/).map((k) => k.trim()).filter((k) => k)[0]
 
-  if (keywordList.length === 0) {
+  if (!firstKeyword) {
     error('Please enter at least one keyword')
     return
   }
 
   loading.value = true
   try {
-    const article = await articleStore.createArticle({
-      title: form.title || 'Untitled',
-      target_keyword: keywordList[0],
-    })
+    const keywords = form.keywords
+      .split(/[\n,]/)
+      .map((k) => k.trim())
+      .filter((k) => k)
 
-    if (article) {
-      const generated = await articleStore.generateArticle(article.id, {
-        generator_type: 'bulk',
-        provider: form.provider,
-        target_keywords: form.keywords,
-        title: form.title || undefined,
-        word_count_min: form.word_count_min,
-        word_count_max: form.word_count_max,
-        tone: form.tone,
-        alternatives: form.alternatives,
-        custom_prompt: form.custom_prompt || undefined,
+    for (let i = 0; i < keywords.length; i++) {
+      const keyword = keywords[i]
+      const article = await articleStore.createArticle({
+        title: form.title ? `${form.title} - ${keyword}` : keyword,
+        target_keyword: keyword,
       })
 
-      if (generated) {
-        success('Article generated successfully!')
-        emit('generated', generated)
+      if (article) {
+        const generated = await articleStore.generateArticle(article.id, {
+          generator_type: 'magic',
+          provider: form.provider,
+          target_keywords: keyword,
+          title: article.title,
+          word_count_min: form.word_count_min,
+          word_count_max: form.word_count_max,
+          tone: form.tone,
+          alternatives: form.alternatives,
+          custom_prompt: form.custom_prompt || undefined,
+        })
+
+        if (generated && i === 0) {
+          emit('generated', generated)
+        }
       }
     }
+
+    success(`Generated ${keywords.length} articles successfully!`)
   } catch (e) {
     error(e.response?.data?.detail || 'Generation failed')
   } finally {
