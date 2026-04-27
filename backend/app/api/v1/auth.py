@@ -15,7 +15,7 @@ from app.schemas.auth import (
 )
 from app.core.security import verify_password, get_password_hash
 from app.core.config import settings
-from app.services.jwt import create_access_token
+from app.services.jwt import create_access_token, create_refresh_token, verify_refresh_token
 
 
 def hash_token(token: str) -> str:
@@ -44,10 +44,13 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     await db.refresh(user)
 
     access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
     return AuthResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         user_id=user.id,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        refresh_expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         user={"id": str(user.id), "email": user.email, "name": user.name}
     )
 
@@ -70,10 +73,13 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         )
 
     access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
     return AuthResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         user_id=user.id,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        refresh_expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         user={"id": str(user.id), "email": user.email, "name": user.name}
     )
 
@@ -133,3 +139,43 @@ async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depen
     await db.commit()
 
     return {"message": "Password has been reset successfully"}
+
+
+@router.post("/refresh", response_model=AuthResponse)
+async def refresh_token(
+    request: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = request.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Refresh token required"
+        )
+
+    user_id = verify_refresh_token(refresh_token)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or disabled"
+        )
+
+    access_token = create_access_token(user.id)
+    new_refresh_token = create_refresh_token(user.id)
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=new_refresh_token,
+        user_id=user.id,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        refresh_expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        user={"id": str(user.id), "email": user.email, "name": user.name}
+    )

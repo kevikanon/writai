@@ -30,9 +30,11 @@ class LoginRequest(BaseModel):
 
 class AuthResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user_id: uuid.UUID
     expires_in: int
+    refresh_expires_in: Optional[int] = None
     user: Optional[dict] = None
 
 

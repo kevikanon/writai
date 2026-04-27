@@ -21,6 +21,16 @@ def create_access_token(user_id: uuid.UUID, expires_delta: Optional[timedelta] =
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+def create_refresh_token(user_id: uuid.UUID) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode = {
+        "sub": str(user_id),
+        "exp": expire,
+        "type": "refresh"
+    }
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
 def decode_token(token: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -32,6 +42,15 @@ def decode_token(token: str) -> Optional[dict]:
 def verify_access_token(token: str) -> Optional[uuid.UUID]:
     payload = decode_token(token)
     if payload and payload.get("type") == "access":
+        user_id = payload.get("sub")
+        if user_id:
+            return uuid.UUID(user_id)
+    return None
+
+
+def verify_refresh_token(token: str) -> Optional[uuid.UUID]:
+    payload = decode_token(token)
+    if payload and payload.get("type") == "refresh":
         user_id = payload.get("sub")
         if user_id:
             return uuid.UUID(user_id)
